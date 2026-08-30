@@ -30,6 +30,21 @@ you wrote. Pin ranks independently and knows the req's history. Diffing them cat
 query being too narrow, and catches candidates the client already passed on — the fastest
 way to lose their confidence in a search.
 
+## Deploying the web UI
+
+`web/index.html` is a complete, self-contained HTML document — no build step, no
+dependencies, no server. Open it locally by double-clicking, or host it anywhere.
+
+**Vercel:** import this repo at vercel.com/new. The root `vercel.json` sets
+`outputDirectory: web`, so a zero-config import works. If Vercel serves the repo root
+instead and you get a 404, set **Root Directory** to `web` in Project Settings.
+
+**CLI:** `cd web && npx vercel --prod`.
+
+Deploys carry `X-Robots-Tag: noindex` and a `robots.txt` — this is an internal tool and
+does not belong in search results. Nothing pasted into the page is ever transmitted; it
+stays in the viewer's own browser via `localStorage`.
+
 ## Web UI
 
 A browser version of the scorer is published as an artifact — paste an intake JSON, get the

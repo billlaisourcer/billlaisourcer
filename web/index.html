@@ -1,8 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Score a sourcing slate against a fixed rubric — ranked fit, evidence coverage, pipeline conflicts, and a copyable markdown scorecard.">
 <title>Calibration Scorecard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
 <style>
+    :root { color-scheme: light dark; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; }
+    img { max-width: 100%; }
+    [hidden] { display: none !important; }
+
   :root {
     --ground:      #F5F6F3;
     --surface:     #FFFFFF;
@@ -150,7 +163,7 @@
     .shell { grid-template-columns: minmax(320px, 380px) 1fr; }
     .pane--in {
       position: sticky; top: 0;
-      max-height: 100vh;
+      height: 100vh;
       border-right: 1px solid var(--hairline);
       border-bottom: none;
     }
@@ -376,7 +389,8 @@
     padding: 40px 0; max-width: 56ch; }
   .empty b { color: var(--ink); }
 </style>
-
+</head>
+<body>
 <header class="masthead">
   <div>
     <h1>Calibration Scorecard</h1>
@@ -1068,3 +1082,5 @@
   run();
 })();
 </script>
+</body>
+</html>
