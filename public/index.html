@@ -8,7 +8,7 @@
 <title>Kick Off Search ICP Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
 <style>
     :root { color-scheme: light dark; }
     html { -webkit-text-size-adjust: 100%; }
@@ -16,78 +16,84 @@
     img { max-width: 100%; }
     [hidden] { display: none !important; }
 
+  /* Palette lifted from sourcedirectconsulting.com: #2f7fff primary,
+     #eef4ff tint, #040d1e ink, #7a8baa muted, #61a4ff light. Neutrals are
+     biased blue to sit with the accent rather than fighting it. Fit scores
+     keep a warm tone on purpose — data needs its own voice, separate from
+     the brand colour, or the hierarchy flattens. */
   :root {
-    --ground:      #F5F6F3;
+    --ground:      #F7F9FD;
     --surface:     #FFFFFF;
-    --surface-sunk:#EDEFEA;
-    --ink:         #16211F;
-    --ink-muted:   #5C6B66;
-    --ink-faint:   #8A9791;
-    --hairline:    #DCE2DC;
-    --hairline-hi: #C6CFC8;
-    --accent:      #1F4E4A;
-    --accent-soft: #E4EDEA;
-    --score:       #A9721E;
-    --score-bar:   #C98A2B;
-    --good:        #2F6E4F;
-    --good-soft:   #E2EFE7;
+    --surface-sunk:#EEF4FF;
+    --ink:         #040D1E;
+    --ink-muted:   #5D6E8E;
+    --ink-faint:   #7A8BAA;
+    --hairline:    #DFE7F4;
+    --hairline-hi: #C4D2EA;
+    --accent:      #2F7FFF;
+    --accent-soft: #EEF4FF;
+    --score:       #A66A05;
+    --score-bar:   #D08A10;
+    --good:        #1C7A55;
+    --good-soft:   #E1F2EB;
     --warn:        #8A5E10;
-    --warn-soft:   #F6EBD6;
-    --crit:        #A33A2E;
-    --crit-soft:   #F7E3E0;
-    --focus:       #1F4E4A;
+    --warn-soft:   #F8EED9;
+    --crit:        #C0392B;
+    --crit-soft:   #FBE6E3;
+    --focus:       #2F7FFF;
 
-    --f-chrome: "Archivo", "Helvetica Neue", Arial, sans-serif;
-    --f-prose:  "Source Serif 4", Georgia, "Times New Roman", serif;
-    --f-data:   "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --f-display: "Playfair Display", Georgia, "Times New Roman", serif;
+    --f-chrome:  "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-prose:   "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-data:    "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
     --r: 4px;
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --ground:      #0E1614;
-      --surface:     #151F1D;
-      --surface-sunk:#101917;
-      --ink:         #E6EBE7;
-      --ink-muted:   #9AAAA4;
-      --ink-faint:   #6E7E78;
-      --hairline:    #26332F;
-      --hairline-hi: #38473F;
-      --accent:      #5FB3A6;
-      --accent-soft: #1A2E2B;
-      --score:       #E0A54A;
-      --score-bar:   #C98A2B;
-      --good:        #6DBE92;
-      --good-soft:   #16281F;
-      --warn:        #D9A047;
-      --warn-soft:   #2A2214;
-      --crit:        #E58275;
-      --crit-soft:   #2E1A17;
-      --focus:       #5FB3A6;
+      --ground:      #060C18;
+      --surface:     #0D1526;
+      --surface-sunk:#0A1120;
+      --ink:         #E8EEF9;
+      --ink-muted:   #9AAAC6;
+      --ink-faint:   #6D7C99;
+      --hairline:    #1C2740;
+      --hairline-hi: #2C3A58;
+      --accent:      #61A4FF;
+      --accent-soft: #14203A;
+      --score:       #E8AE4A;
+      --score-bar:   #D08A10;
+      --good:        #5FC49A;
+      --good-soft:   #0F2620;
+      --warn:        #DDA84F;
+      --warn-soft:   #241E10;
+      --crit:        #F08878;
+      --crit-soft:   #2B1512;
+      --focus:       #61A4FF;
     }
   }
 
   :root[data-theme="dark"] {
-    --ground:      #0E1614;
-    --surface:     #151F1D;
-    --surface-sunk:#101917;
-    --ink:         #E6EBE7;
-    --ink-muted:   #9AAAA4;
-    --ink-faint:   #6E7E78;
-    --hairline:    #26332F;
-    --hairline-hi: #38473F;
-    --accent:      #5FB3A6;
-    --accent-soft: #1A2E2B;
-    --score:       #E0A54A;
-    --score-bar:   #C98A2B;
-    --good:        #6DBE92;
-    --good-soft:   #16281F;
-    --warn:        #D9A047;
-    --warn-soft:   #2A2214;
-    --crit:        #E58275;
-    --crit-soft:   #2E1A17;
-    --focus:       #5FB3A6;
+    --ground:      #060C18;
+    --surface:     #0D1526;
+    --surface-sunk:#0A1120;
+    --ink:         #E8EEF9;
+    --ink-muted:   #9AAAC6;
+    --ink-faint:   #6D7C99;
+    --hairline:    #1C2740;
+    --hairline-hi: #2C3A58;
+    --accent:      #61A4FF;
+    --accent-soft: #14203A;
+    --score:       #E8AE4A;
+    --score-bar:   #D08A10;
+    --good:        #5FC49A;
+    --good-soft:   #0F2620;
+    --warn:        #DDA84F;
+    --warn-soft:   #241E10;
+    --crit:        #F08878;
+    --crit-soft:   #2B1512;
+    --focus:       #61A4FF;
   }
 
   * { box-sizing: border-box; }
@@ -127,7 +133,8 @@
     display: flex; flex-direction: column; gap: 13px;
   }
   .gate__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
-  .gate__title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .gate__title { margin: 0; font-family: var(--f-display); font-size: 17px;
+    font-weight: 700; letter-spacing: -0.01em; }
   .gate__sub {
     margin: 0; font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted);
   }
@@ -145,7 +152,8 @@
   }
   .masthead h1 {
     margin: 0;
-    font-size: 19px; font-weight: 700;
+    font-family: var(--f-display);
+    font-size: 21px; font-weight: 700;
     letter-spacing: -0.01em;
   }
   .masthead p {
@@ -173,11 +181,11 @@
     color: var(--surface);
   }
   :root[data-theme="dark"] button.primary,
-  .dk button.primary { color: #0E1614; }
+  .dk button.primary { color: #040D1E; }
   button.primary:hover { filter: brightness(1.08); color: var(--surface); }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) button.primary { color: #0E1614; }
-    :root:not([data-theme="light"]) button.primary:hover { color: #0E1614; }
+    :root:not([data-theme="light"]) button.primary { color: #040D1E; }
+    :root:not([data-theme="light"]) button.primary:hover { color: #040D1E; }
   }
   @media (prefers-reduced-motion: no-preference) {
     button { transition: border-color .12s ease, color .12s ease; }
@@ -293,7 +301,8 @@
   }
   .reqhead h2 {
     margin: 5px 0 10px;
-    font-size: clamp(23px, 3.2vw, 31px); font-weight: 700;
+    font-family: var(--f-display);
+    font-size: clamp(24px, 3.2vw, 33px); font-weight: 700;
     letter-spacing: -0.02em; line-height: 1.14;
     text-wrap: balance;
   }
@@ -464,8 +473,8 @@
         <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
         <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
         <text x="19" y="22" text-anchor="middle"
-          font-family="Archivo, 'Helvetica Neue', Arial, sans-serif"
-          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#F5F6F3">SD</text>
+          font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
       </svg>
       <div>
         <div class="brand__name">SD Talent</div>
@@ -486,8 +495,8 @@
       <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
       <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
       <text x="19" y="22" text-anchor="middle"
-        font-family="Archivo, 'Helvetica Neue', Arial, sans-serif"
-        font-size="16" font-weight="700" letter-spacing="-0.5" fill="#F5F6F3">SD</text>
+        font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+        font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
     </svg>
     <div>
       <div class="brand__name">SD Talent</div>
