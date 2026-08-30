@@ -1,8 +1,11 @@
 # Briefs
 
-One intake JSON and one generated scorecard per req, committed so the calibration read
-survives the session and the next one can pick it up.
+Working directory for per-req intake slates and generated scorecards.
+
+**Real candidate slates are gitignored and must stay that way.** This repository is
+public. A slate contains named individuals, their LinkedIn URLs, employers, locations
+and written assessments of them — none of which belongs in a public repo.
+
+Keep slates local, or push them to a separate private repository.
 
 Naming: `<company>-<role-slug>.json` and `<company>-<role-slug>-scorecard.md`.
-
-These contain real candidate names and profile data. Keep the repo private.
