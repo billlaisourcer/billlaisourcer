@@ -651,9 +651,7 @@
     adjacent: "Adjacent industry",
     probe: "Probe / non-obvious"
   };
-  var SOURCE_LABEL = {
-    both: "SeekOut + Pin", seekout_only: "SeekOut", pin_only: "Pin", none: "—"
-  };
+  var SOURCE_LABELS = { seekout: "SeekOut", pin: "Pin", supercarl: "Super Carl" };
   var EVIDENCE_FLOOR = 60;
   var MAX_RATING = 5;
 
@@ -708,10 +706,11 @@
     var coverage = roundHalfEven(100 * possible / total, 0);
 
     var src = cand.sources || {};
-    var inSo = !!src.seekout, inPin = !!src.pin;
-    var corr = (inSo && inPin) ? "both" : inSo ? "seekout_only" : inPin ? "pin_only" : "none";
+    var active = Object.keys(SOURCE_LABELS).filter(function (k) { return src[k]; });
+    var corr = active.length >= 2 ? "both" : (active[0] || "none");
+    var sourceLabel = active.map(function (k) { return SOURCE_LABELS[k]; }).join(" + ") || "—";
 
-    var conf = corr === "both" ? 2 : corr !== "none" ? 1 : 0;
+    var conf = active.length >= 2 ? 2 : active.length ? 1 : 0;
     if (coverage >= 80) conf += 1;
     else if (coverage < 60) conf -= 1;
 
@@ -720,6 +719,7 @@
       evidence_coverage: coverage,
       scored_dimensions: scored,
       corroboration: corr,
+      source_label: sourceLabel,
       confidence: conf >= 3 ? "High" : conf === 2 ? "Medium" : "Low"
     };
   }
@@ -738,9 +738,9 @@
       flags.push({ level: "warn", text: "Already shortlisted on this req" });
     }
 
-    if (c.corroboration === "pin_only") {
+    if (c.corroboration === "pin") {
       flags.push({ level: "warn", text: "Pin-only — the SeekOut boolean missed them; widen titles or skills" });
-    } else if (c.corroboration === "seekout_only") {
+    } else if (c.corroboration === "seekout") {
       flags.push({ level: "warn", text: "SeekOut-only — absent from Pin's ranked pool" });
     }
 
@@ -844,7 +844,7 @@
         '<td class="num">' + r.evidence_coverage + "%</td>" +
         '<td><span class="chip ' + chipCls(r.confidence) + '">' + r.confidence + "</span></td>" +
         '<td><span class="chip' + (r.corroboration === "both" ? " both" : "") + '">' +
-          esc(SOURCE_LABEL[r.corroboration]) + "</span></td>" +
+          esc(r.source_label) + "</span></td>" +
         "</tr>";
     });
     return h + "</tbody></table></div>";
@@ -882,7 +882,7 @@
       '<span class="band">' + esc(BANDS[r.band] || fmt(r.band)) + "</span>" +
       '<span class="chip ' + chipCls(r.confidence) + '">' + r.confidence + " confidence</span>" +
       '<span class="chip' + (r.corroboration === "both" ? " both" : "") + '">' +
-        esc(SOURCE_LABEL[r.corroboration]) + "</span>" +
+        esc(r.source_label) + "</span>" +
       '<span class="chip">' + r.evidence_coverage + "% evidenced</span>" +
       "</div>";
 
@@ -976,7 +976,7 @@
         " | " + (BANDS[r.band] || fmt(r.band)) +
         " | " + (r.composite === null ? "—" : "**" + r.composite.toFixed(1) + "**") +
         " | " + r.evidence_coverage + "% | " + r.confidence +
-        " | " + SOURCE_LABEL[r.corroboration] + " |";
+        " | " + r.source_label + " |";
     }
     var head = ["| # | Candidate | Current role | Band | Fit | Evid. | Conf. | Sources |",
                 "|---|---|---|---|---|---|---|---|"];

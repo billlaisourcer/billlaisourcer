@@ -64,6 +64,11 @@ BANDS: dict[str, str] = {
 # profile without an explicit flag.
 BLOCKING_PIN_STATUS = {"rejected", "accepted"}
 
+# Sourcing engines a slate may cite. Corroboration means two or more independently
+# surfaced the same person — the strongest confidence signal there is. A
+# single-engine slate is normal, not suspect.
+SOURCE_LABELS = {"seekout": "SeekOut", "pin": "Pin", "supercarl": "Super Carl"}
+
 MAX_RATING = 5
 
 # Below this share of rubric weight, a composite is normalised over so little
@@ -115,19 +120,12 @@ def score_candidate(cand: dict[str, Any], weights: dict[str, int]) -> dict[str, 
     coverage = round(100 * possible / total_weight)
 
     sources = cand.get("sources") or {}
-    in_seekout = bool(sources.get("seekout"))
-    in_pin = bool(sources.get("pin"))
-    if in_seekout and in_pin:
-        corroboration = "both"
-    elif in_seekout:
-        corroboration = "seekout_only"
-    elif in_pin:
-        corroboration = "pin_only"
-    else:
-        corroboration = "none"
+    active = [k for k in SOURCE_LABELS if sources.get(k)]
+    corroboration = "both" if len(active) >= 2 else (active[0] if active else "none")
+    source_label = " + ".join(SOURCE_LABELS[k] for k in active) or "—"
 
     # Confidence is about how much to trust the read, not how good the fit is.
-    conf = 2 if corroboration == "both" else 1 if corroboration != "none" else 0
+    conf = 2 if len(active) >= 2 else 1 if active else 0
     if coverage >= 80:
         conf += 1
     elif coverage < 60:
@@ -139,6 +137,7 @@ def score_candidate(cand: dict[str, Any], weights: dict[str, int]) -> dict[str, 
         "evidence_coverage": coverage,
         "scored_dimensions": scored_dims,
         "corroboration": corroboration,
+        "source_label": source_label,
         "confidence": confidence,
     }
 
@@ -156,9 +155,9 @@ def build_flags(cand: dict[str, Any], computed: dict[str, Any]) -> list[str]:
     elif status == "shortlisted":
         flags.append("Already shortlisted on this req")
 
-    if computed["corroboration"] == "pin_only":
+    if computed["corroboration"] == "pin":
         flags.append("Pin-only — the SeekOut boolean missed them; widen titles or skills")
-    elif computed["corroboration"] == "seekout_only":
+    elif computed["corroboration"] == "seekout":
         flags.append("SeekOut-only — absent from Pin's ranked pool")
 
     if computed["evidence_coverage"] < 60:
@@ -257,8 +256,7 @@ def render_markdown(result: dict[str, Any]) -> str:
         role = f"{fmt(r.get('title'))} @ {fmt(r.get('company'))}"
         band = BANDS.get(r.get("band"), fmt(r.get("band")))
         fit = f"**{r['composite']}**" if r["composite"] is not None else "—"
-        src = {"both": "SeekOut + Pin", "seekout_only": "SeekOut", "pin_only": "Pin",
-               "none": "—"}[r["corroboration"]]
+        src = r["source_label"]
         blocked = " ⛔" if any(f.startswith("BLOCKED") for f in r["flags"]) else ""
         num = r["rank"] if r["rank"] is not None else "—"
         return (f"| {num} | {r['name']}{blocked} | {role} | {band} | {fit} | "
