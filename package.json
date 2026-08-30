@@ -1,0 +1,22 @@
+{
+  "name": "sourcing-ai-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn a job description into a scored calibration slate.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "score": "python3 scripts/score_candidates.py"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

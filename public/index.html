@@ -205,6 +205,35 @@
     tab-size: 2;
   }
 
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 10px; border: 1px solid transparent; border-radius: var(--r);
+    background: none; color: var(--ink-faint); cursor: pointer; white-space: nowrap;
+  }
+  .tab.is-on { background: var(--surface); border-color: var(--hairline-hi); color: var(--ink); }
+  .tab:hover { color: var(--accent); }
+
+  .mode { display: flex; flex-direction: column; gap: 9px; flex: 1 1 auto; min-height: 0; }
+  /* The JD pane carries four more controls beneath it, so it needs a shorter
+     floor than the JSON pane or the run button falls below the fold. */
+  #jd { min-height: 170px; }
+  .mode[hidden] { display: none; }
+
+  .field {
+    font-family: var(--f-chrome); font-size: 13px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    padding: 8px 10px; width: 100%; min-width: 0;
+  }
+  .field::placeholder { color: var(--ink-faint); }
+
+  button.wide { width: 100%; padding: 10px; font-size: 13.5px; }
+  button[disabled] { opacity: .55; cursor: progress; }
+
+  .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
+  .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
+
   .err {
     font-family: var(--f-data); font-size: 12px;
     color: var(--crit); background: var(--crit-soft);
@@ -400,7 +429,7 @@
 <header class="masthead">
   <div>
     <h1>Calibration Scorecard</h1>
-    <p>Paste an intake slate and get the scored read — same arithmetic as <code style="font-family:var(--f-data);font-size:12.5px">score_candidates.py</code>, running in the browser.</p>
+    <p>Paste a job description. Get ten sourced candidates, banded for calibration and scored against a fixed rubric with the evidence behind every rating.</p>
   </div>
   <div class="masthead__actions">
     <button id="btn-example" type="button">Load example</button>
@@ -411,12 +440,26 @@
 <main class="shell">
   <section class="pane pane--in">
     <div class="pane__head">
-      <h2>Intake JSON</h2>
-      <span class="chip" id="status">empty</span>
+      <div class="tabs" role="tablist">
+        <button class="tab is-on" id="tab-jd" role="tab" aria-selected="true" type="button">Job description</button>
+        <button class="tab" id="tab-json" role="tab" aria-selected="false" type="button">Intake JSON</button>
+      </div>
+      <span class="chip" id="status">ready</span>
     </div>
-    <textarea id="input" spellcheck="false" aria-label="Intake JSON"></textarea>
-    <div class="err" id="err" hidden></div>
-    <details class="help">
+
+    <div class="mode" id="mode-jd">
+      <textarea id="jd" spellcheck="false" aria-label="Job description"
+        placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
+      <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
+      <input class="field" id="jd-notes" placeholder="Anything the JD does not say (optional)">
+      <input class="field" id="jd-token" type="password" placeholder="Access token" autocomplete="off">
+      <button class="primary wide" id="btn-run" type="button">Source &amp; score</button>
+      <p class="hint" id="run-hint">Runs a live candidate search. Expect two to five minutes.</p>
+    </div>
+
+    <div class="mode" id="mode-json" hidden>
+      <textarea id="input" spellcheck="false" aria-label="Intake JSON"></textarea>
+      <details class="help">
       <summary>Field reference</summary>
       <ul>
         <li><code>req</code> — title, company, location, seniority_band, must_haves[]</li>
@@ -426,7 +469,10 @@
         <li><code>candidates[].band</code> — on_target · stretch_senior · stretch_junior · adjacent · probe</li>
         <li><code>candidates[].scores.&lt;dim&gt;</code> — <code>{rating: 0–5 or null, evidence}</code>. Use <code>null</code> when there is no evidence; never guess a rating.</li>
       </ul>
-    </details>
+      </details>
+    </div>
+
+    <div class="err" id="err" hidden></div>
   </section>
 
   <section class="pane pane--out">
@@ -1082,10 +1128,141 @@
     done(ok);
   }
 
-  var saved = null;
-  try { saved = localStorage.getItem("calibration-scorecard:input"); } catch (e) { saved = null; }
+  /* ---------- tabs ---------- */
+
+  var $tabJd = document.getElementById("tab-jd");
+  var $tabJson = document.getElementById("tab-json");
+  var $modeJd = document.getElementById("mode-jd");
+  var $modeJson = document.getElementById("mode-json");
+
+  function selectTab(which) {
+    var jd = which === "jd";
+    $modeJd.hidden = !jd;
+    $modeJson.hidden = jd;
+    $tabJd.classList.toggle("is-on", jd);
+    $tabJson.classList.toggle("is-on", !jd);
+    $tabJd.setAttribute("aria-selected", String(jd));
+    $tabJson.setAttribute("aria-selected", String(!jd));
+  }
+  $tabJd.addEventListener("click", function () { selectTab("jd"); });
+  $tabJson.addEventListener("click", function () { selectTab("json"); });
+
+  /* ---------- source & score ---------- */
+
+  var $jd = document.getElementById("jd");
+  var $jdLocation = document.getElementById("jd-location");
+  var $jdNotes = document.getElementById("jd-notes");
+  var $jdToken = document.getElementById("jd-token");
+  var $runBtn = document.getElementById("btn-run");
+  var $runHint = document.getElementById("run-hint");
+
+  var IDLE_HINT = "Runs a live candidate search. Expect two to five minutes.";
+
+  function store(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* private mode */ }
+  }
+  function recall(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  $jdToken.addEventListener("change", function () {
+    store("calibration-scorecard:token", $jdToken.value);
+  });
+  $jd.addEventListener("input", function () { store("calibration-scorecard:jd", $jd.value); });
+
+  function showError(message) {
+    $err.hidden = false;
+    $err.textContent = message;
+  }
+
+  $runBtn.addEventListener("click", async function () {
+    var jd = $jd.value.trim();
+    if (jd.length < 120) {
+      showError("Paste the full job description — at least a couple of paragraphs.");
+      setStatus("need a JD", "bad");
+      return;
+    }
+    if (!$jdToken.value.trim()) {
+      showError("An access token is required. Without one the endpoint refuses to run.");
+      setStatus("need a token", "bad");
+      return;
+    }
+
+    $err.hidden = true;
+    $runBtn.disabled = true;
+    setStatus("sourcing", "md");
+
+    var started = Date.now();
+    var ticker = setInterval(function () {
+      var secs = Math.round((Date.now() - started) / 1000);
+      $runHint.innerHTML = "Searching and scoring — <b>" + secs + "s</b>. This runs a live " +
+        "search, so it is slow on purpose.";
+    }, 1000);
+
+    function finish(statusText, statusClass) {
+      clearInterval(ticker);
+      $runBtn.disabled = false;
+      $runHint.textContent = IDLE_HINT;
+      setStatus(statusText, statusClass);
+    }
+
+    try {
+      var res = await fetch("/api/intake", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer " + $jdToken.value.trim()
+        },
+        body: JSON.stringify({
+          jd: jd,
+          location: $jdLocation.value.trim(),
+          notes: $jdNotes.value.trim()
+        })
+      });
+
+      var payload = await res.json().catch(function () { return null; });
+
+      if (!res.ok) {
+        var msg = (payload && payload.error) || ("Request failed with " + res.status + ".");
+        if (payload && payload.detail) msg += "\n" + payload.detail;
+        if (payload && payload.issues) {
+          msg += "\n" + payload.issues.map(function (i) {
+            return "· " + (i.path || []).join(".") + ": " + i.message;
+          }).join("\n");
+        }
+        showError(msg);
+        finish("failed", "bad");
+        return;
+      }
+
+      $in.value = JSON.stringify(payload.intake, null, 2);
+      store("calibration-scorecard:input", $in.value);
+      run();
+
+      var meta = payload.meta || {};
+      var elapsed = Math.round((Date.now() - started) / 1000);
+      clearInterval(ticker);
+      $runBtn.disabled = false;
+      $runHint.innerHTML = "Sourced <b>" + (meta.candidates || 0) + "</b> profiles across <b>" +
+        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>. " +
+        "The Intake JSON tab has the raw slate.";
+    } catch (err) {
+      showError("Could not reach the sourcing endpoint.\n" + (err && err.message ? err.message : err));
+      finish("failed", "bad");
+    }
+  });
+
+  /* ---------- restore ---------- */
+
+  var savedToken = recall("calibration-scorecard:token");
+  if (savedToken) $jdToken.value = savedToken;
+  var savedJd = recall("calibration-scorecard:jd");
+  if (savedJd) $jd.value = savedJd;
+
+  var saved = recall("calibration-scorecard:input");
   $in.value = saved || EXAMPLE;
   run();
+  setStatus(savedJd ? "ready" : "showing example");
 })();
 </script>
 </body>

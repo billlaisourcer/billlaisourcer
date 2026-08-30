@@ -1,34 +1,55 @@
-# Intake recruiting tool
+# Sourcing AI Agent
 
-Turns a new job description into a **calibration slate**: 10 example profiles, each with
-explicit reasoning and a score on a fixed rubric, sourced from SeekOut and cross-referenced
-against Pin.
+Paste a job description, get a **calibration slate**: ten sourced candidates, banded to
+provoke disagreement, each scored on a fixed rubric with the evidence behind every rating.
 
 The slate is a conversation tool, not a shortlist. Showing a client ten concrete people
-early surfaces disagreements about seniority, must-haves, and target companies *before*
+early surfaces disagreements about seniority, must-haves and target companies *before*
 weeks of sourcing get spent against a misread req.
 
 ## How it works
 
 ```
-new JD ──► dissect ──┬──► SeekOut  (boolean + filters you control, auditable)
-                     │
-                     └──► Pin      (independent ranking from the JD text)
-                              │
-                     cross-reference
-                              │
-              ┌───────────────┼───────────────┐
-       corroboration   blind spots     pipeline conflicts
-       (both engines)  (Pin-only →     (already rejected /
-                        widen boolean)  already contacted)
-                              │
-                        score + brief
+job description
+      │
+      ▼
+POST /api/intake ──► Claude (claude-opus-5)
+      │                  └─ MCP connector ──► api.supercarl.ai/mcp
+      │                       people search · company search · warm intro paths
+      ▼
+  intake JSON  ──►  deterministic scorer  ──►  scorecard in the browser
 ```
 
-Neither engine alone gives you this. SeekOut is auditable but only as good as the boolean
-you wrote. Pin ranks independently and knows the req's history. Diffing them catches the
-query being too narrow, and catches candidates the client already passed on — the fastest
-way to lose their confidence in a search.
+One request does the whole loop: the MCP connector executes Super Carl's tools
+server-side, so there is no client-side tool loop to run or maintain.
+
+The model dissects the JD, cuts the wish-list down to 3–6 real must-haves, searches,
+selects ten profiles for band spread, and scores each dimension with a cited fact. The
+arithmetic then happens in code, not in the model — see the rubric below.
+
+## Layout
+
+```
+api/intake.ts             the sourcing endpoint (Vercel function)
+lib/rubric.ts             weights, bands, evidence floor — the single source of truth
+lib/intake-schema.ts      Zod contract the model must satisfy
+public/index.html         the UI and the in-browser scorer
+scripts/score_candidates.py   the CLI scorer (byte-identical output)
+schema/intake.schema.json     the intake file format
+.claude/skills/jd-intake/     the Claude-side workflow (SeekOut + Pin)
+```
+
+## Environment
+
+Three variables, all required. The endpoint **fails closed** without them.
+
+| Variable | Purpose |
+|---|---|
+| `APP_ACCESS_TOKEN` | Gate on `/api/intake`. Without it anyone with the URL spends your credits. |
+| `SUPERCARL_API_KEY` | Super Carl programmatic access — mint at `/integrations/connections`. |
+| `ANTHROPIC_API_KEY` | The dissection and scoring reasoning. |
+
+See `.env.example`. Set the same three in **Vercel → Settings → Environment Variables**.
 
 ## Deploying the web UI
 

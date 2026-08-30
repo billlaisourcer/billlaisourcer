@@ -6,3 +6,7 @@ __pycache__/
 # Keep them local, or in a separate private repo.
 briefs/*.json
 briefs/*-scorecard.md
+node_modules/
+.vercel
+.env
+.env*.local
