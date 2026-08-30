@@ -255,7 +255,22 @@ export async function POST(request: Request): Promise<Response> {
       return json({ error: "Rate limited by the Claude API. Try again shortly." }, 429);
     }
     if (err instanceof AuthenticationError) {
-      return json({ error: "Claude API rejected the key." }, 502);
+      // Pass Anthropic's own wording through. "invalid x-api-key" means the key
+      // is wrong or revoked; a credit problem reads very differently. Collapsing
+      // both into one message just costs another round trip to find out which.
+      const key = process.env.ANTHROPIC_API_KEY ?? "";
+      return json(
+        {
+          error: "Claude API rejected the key.",
+          detail: err.message,
+          key_shape: {
+            length: key.length,
+            starts_with: key.slice(0, 11),
+            has_whitespace: /\s/.test(key),
+          },
+        },
+        502,
+      );
     }
     if (err instanceof APIConnectionError) {
       return json({ error: "Could not reach the Claude API." }, 504);
