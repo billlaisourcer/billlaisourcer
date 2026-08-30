@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Score a sourcing slate against a fixed rubric — ranked fit, evidence coverage, pipeline conflicts, and a copyable markdown scorecard.">
-<title>Calibration Scorecard</title>
+<title>Sample ICP for Kick Off Search</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -105,6 +105,37 @@
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
   /* ---------- masthead ---------- */
+  /* ---------- brand ---------- */
+  .brand { display: flex; align-items: flex-start; gap: 13px; min-width: 0; }
+  .brand__mark { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 7px; display: block; }
+  .brand__name {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 2px;
+  }
+
+  /* ---------- access gate ---------- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ground); padding: 24px;
+  }
+  .gate[hidden] { display: none; }
+  .gate__card {
+    width: 100%; max-width: 340px;
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 26px 24px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .gate__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
+  .gate__title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .gate__sub {
+    margin: 0; font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted);
+  }
+  .gate__err {
+    margin: 0; font-size: 12.5px; font-weight: 600; color: var(--crit);
+  }
+  .gate__err[hidden] { display: none; }
+
   .masthead {
     display: flex; flex-wrap: wrap; gap: 16px;
     align-items: flex-end; justify-content: space-between;
@@ -426,10 +457,43 @@
 </style>
 </head>
 <body>
+<div class="gate" id="gate">
+  <div class="gate__card">
+    <div class="gate__brand">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+        <text x="19" y="22" text-anchor="middle"
+          font-family="Archivo, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#F5F6F3">SD</text>
+      </svg>
+      <div>
+        <div class="brand__name">SD Talent</div>
+        <h2 class="gate__title">Sample ICP for Kick Off Search</h2>
+      </div>
+    </div>
+    <p class="gate__sub">Enter the access password to continue.</p>
+    <input class="field" id="gate-pw" type="password" autocomplete="current-password"
+      placeholder="Password" aria-label="Access password">
+    <button class="primary wide" id="gate-go" type="button">Enter</button>
+    <p class="gate__err" id="gate-err" hidden>That password is not correct.</p>
+  </div>
+</div>
+
 <header class="masthead">
-  <div>
-    <h1>Calibration Scorecard</h1>
-    <p>Paste a job description. Get ten sourced candidates, banded for calibration and scored against a fixed rubric with the evidence behind every rating.</p>
+  <div class="brand">
+    <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+      <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+      <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+      <text x="19" y="22" text-anchor="middle"
+        font-family="Archivo, 'Helvetica Neue', Arial, sans-serif"
+        font-size="16" font-weight="700" letter-spacing="-0.5" fill="#F5F6F3">SD</text>
+    </svg>
+    <div>
+      <div class="brand__name">SD Talent</div>
+      <h1>Sample ICP for Kick Off Search</h1>
+      <p>Paste a job description. Get sourced candidates, banded for calibration and scored against a fixed rubric with the evidence behind every rating.</p>
+    </div>
   </div>
   <div class="masthead__actions">
     <button id="btn-example" type="button">Load example</button>
@@ -1129,6 +1193,45 @@
     try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
     document.body.removeChild(ta);
     done(ok);
+  }
+
+  /* ---------- access gate ---------- */
+  /*
+   * This is a curtain, not a lock. The password sits in the page source, so it
+   * keeps a casual visitor out and nothing more. The API endpoint is separately
+   * open — see the note in api/intake.ts.
+   */
+  var GATE_PASSWORD = "william27";
+  var GATE_KEY = "sdtalent:unlocked";
+  var $gate = document.getElementById("gate");
+  var $gatePw = document.getElementById("gate-pw");
+  var $gateErr = document.getElementById("gate-err");
+
+  function openGate() {
+    $gate.hidden = true;
+    try { localStorage.setItem(GATE_KEY, "1"); } catch (e) { /* private mode */ }
+  }
+  function tryGate() {
+    if ($gatePw.value.trim() === GATE_PASSWORD) {
+      openGate();
+    } else {
+      $gateErr.hidden = false;
+      $gatePw.value = "";
+      $gatePw.focus();
+    }
+  }
+  document.getElementById("gate-go").addEventListener("click", tryGate);
+  $gatePw.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") tryGate();
+    else $gateErr.hidden = true;
+  });
+
+  var unlocked = null;
+  try { unlocked = localStorage.getItem(GATE_KEY); } catch (e) { unlocked = null; }
+  if (unlocked === "1") {
+    $gate.hidden = true;
+  } else {
+    $gatePw.focus();
   }
 
   /* ---------- tabs ---------- */
