@@ -54,8 +54,9 @@ that", and that reaction is worth more than weeks of sourcing against a misread 
    every profile that follows.
 2. Note the seniority band as years PLUS scope of ownership, not just a title word.
 3. Identify where this talent actually sits — the companies whose people are the natural pool.
-4. Search with the ${MCP_NAME} tools. Run several searches with different angles rather than
-   one broad query. Pull more people than you need so you can select for spread.
+4. Search with the ${MCP_NAME} tools. **You are under a hard time budget — use at most four
+   searches.** Make each one count: vary the angle rather than repeating a query, and pull
+   more people per search than you need so you can select for spread. Do not keep refining.
 5. Select exactly ${SLATE_SIZE} for band spread:
 ${BAND_TABLE}
 6. Score each person on every rubric dimension:
@@ -141,7 +142,7 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Server is not configured: ANTHROPIC_API_KEY is unset." }, 503);
   }
 
-  let body: { jd?: unknown; location?: unknown; notes?: unknown };
+  let body: { jd?: unknown; location?: unknown; notes?: unknown; count?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -156,6 +157,9 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  const requested = typeof body.count === "number" ? Math.round(body.count) : SLATE_SIZE;
+  const count = Math.min(Math.max(requested, 3), SLATE_SIZE);
+
   const location = typeof body.location === "string" ? body.location.trim() : "";
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
@@ -163,7 +167,8 @@ export async function POST(request: Request): Promise<Response> {
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
   userParts.push(
-    `\n\nSource and score a ${SLATE_SIZE}-profile calibration slate. Search before you score.`,
+    `\n\nSource and score a ${count}-profile calibration slate. Search before you score, ` +
+      `and keep to at most 4 searches — this runs under a hard time budget.`,
   );
 
   const client = new Anthropic();
@@ -171,7 +176,11 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const stream = client.beta.messages.stream({
       model: "claude-opus-5",
-      max_tokens: 32000,
+      max_tokens: 16000,
+      // The whole job must finish inside the platform's function duration cap.
+      // Lower effort means fewer, more consolidated tool calls — the single
+      // biggest lever on wall-clock here.
+      output_config: { effort: "medium" },
       system: SYSTEM,
       messages: [{ role: "user", content: userParts.join("") }],
       mcp_servers: [

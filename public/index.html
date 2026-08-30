@@ -452,6 +452,10 @@
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
       <input class="field" id="jd-notes" placeholder="Anything the JD does not say (optional)">
+      <select class="field" id="jd-count" aria-label="Slate size">
+        <option value="10">10 profiles — full calibration slate</option>
+        <option value="5">5 profiles — faster, good for a first test</option>
+      </select>
       <button class="primary wide" id="btn-run" type="button">Source &amp; score</button>
       <p class="hint" id="run-hint">Runs a live candidate search. Expect two to five minutes.</p>
     </div>
@@ -1202,13 +1206,23 @@
         body: JSON.stringify({
           jd: jd,
           location: $jdLocation.value.trim(),
-          notes: $jdNotes.value.trim()
+          notes: $jdNotes.value.trim(),
+          count: parseInt(document.getElementById("jd-count").value, 10)
         })
       });
 
       var payload = await res.json().catch(function () { return null; });
 
       if (!res.ok) {
+        if (res.status === 504 || res.status === 502 && !payload) {
+          showError(
+            "The search ran longer than the server will hold a connection open (" +
+            res.status + ").\n\nThe sourcing itself may well have been working — it just " +
+            "could not finish in time. Try the 5-profile option, which is a much shorter run."
+          );
+          finish("timed out", "bad");
+          return;
+        }
         var msg = (payload && payload.error) || ("Request failed with " + res.status + ".");
         if (payload && payload.detail) msg += "\n" + payload.detail;
         if (payload && payload.issues) {
