@@ -169,8 +169,11 @@
     }
   }
 
+  .shell > * { min-width: 0; }
+
   .pane--in {
     display: flex; flex-direction: column;
+    min-width: 0;
     background: var(--surface-sunk);
     border-bottom: 1px solid var(--hairline);
     padding: 16px clamp(14px, 2vw, 20px);
@@ -188,6 +191,8 @@
 
   textarea {
     flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
     min-height: 300px;
     resize: vertical;
     font-family: var(--f-data);
@@ -218,6 +223,7 @@
 
   /* ---------- output ---------- */
   .pane--out { padding: clamp(18px, 3vw, 34px); min-width: 0; }
+  .doc, .card, .reqhead, .musts { min-width: 0; }
   .doc { max-width: 1000px; margin: 0 auto; }
 
   .reqhead { margin-bottom: 26px; }
