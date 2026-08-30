@@ -17,7 +17,7 @@ import {
  * POST /api/intake
  *
  * Body: { jd: string, location?: string, notes?: string }
- * Auth: Authorization: Bearer <APP_ACCESS_TOKEN>
+ * Auth: none — deliberately open, see the note in the handler.
  *
  * Turns a job description into a scored calibration slate by giving Claude a
  * live connection to Super Carl's MCP server and asking it to source, band and
@@ -129,20 +129,10 @@ function json(body: unknown, status: number): Response {
  * Response. Naming the method also gives us a free 405 on everything else.
  */
 export async function POST(request: Request): Promise<Response> {
-  // Fail closed. Without a configured token this endpoint would let anyone on
-  // the internet spend the owner's Super Carl credits and Anthropic tokens.
-  const expected = process.env.APP_ACCESS_TOKEN;
-  if (!expected) {
-    return json(
-      { error: "Server is not configured: APP_ACCESS_TOKEN is unset. Refusing to run." },
-      503,
-    );
-  }
-  const presented = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (presented !== expected) {
-    return json({ error: "Not authorised." }, 401);
-  }
-
+  // NOTE: this endpoint is intentionally open. It was gated on APP_ACCESS_TOKEN;
+  // the owner removed the gate deliberately. Anyone who knows the URL can spend
+  // the configured Super Carl credits and Anthropic tokens. To restore the gate,
+  // reinstate the token comparison here and the token field in public/index.html.
   const carlToken = process.env.SUPERCARL_API_KEY;
   if (!carlToken) {
     return json({ error: "Server is not configured: SUPERCARL_API_KEY is unset." }, 503);

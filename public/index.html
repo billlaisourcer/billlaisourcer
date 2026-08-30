@@ -452,12 +452,8 @@
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
       <input class="field" id="jd-notes" placeholder="Anything the JD does not say (optional)">
-      <input class="field" id="jd-token" type="password" autocomplete="off"
-        placeholder="APP_ACCESS_TOKEN — the value you set in Vercel">
       <button class="primary wide" id="btn-run" type="button">Source &amp; score</button>
       <p class="hint" id="run-hint">Runs a live candidate search. Expect two to five minutes.</p>
-      <p class="hint">The token is the <b>APP_ACCESS_TOKEN</b> environment variable, not your
-        Anthropic or Super Carl key — those stay on the server and never reach this page.</p>
     </div>
 
     <div class="mode" id="mode-json" hidden>
@@ -1155,7 +1151,6 @@
   var $jd = document.getElementById("jd");
   var $jdLocation = document.getElementById("jd-location");
   var $jdNotes = document.getElementById("jd-notes");
-  var $jdToken = document.getElementById("jd-token");
   var $runBtn = document.getElementById("btn-run");
   var $runHint = document.getElementById("run-hint");
 
@@ -1168,9 +1163,6 @@
     try { return localStorage.getItem(key); } catch (e) { return null; }
   }
 
-  $jdToken.addEventListener("change", function () {
-    store("calibration-scorecard:token", $jdToken.value);
-  });
   $jd.addEventListener("input", function () { store("calibration-scorecard:jd", $jd.value); });
 
   function showError(message) {
@@ -1185,12 +1177,6 @@
       setStatus("need a JD", "bad");
       return;
     }
-    if (!$jdToken.value.trim()) {
-      showError("An access token is required. Without one the endpoint refuses to run.");
-      setStatus("need a token", "bad");
-      return;
-    }
-
     $err.hidden = true;
     $runBtn.disabled = true;
     setStatus("sourcing", "md");
@@ -1212,10 +1198,7 @@
     try {
       var res = await fetch("/api/intake", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: "Bearer " + $jdToken.value.trim()
-        },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           jd: jd,
           location: $jdLocation.value.trim(),
@@ -1257,8 +1240,6 @@
 
   /* ---------- restore ---------- */
 
-  var savedToken = recall("calibration-scorecard:token");
-  if (savedToken) $jdToken.value = savedToken;
   var savedJd = recall("calibration-scorecard:jd");
   if (savedJd) $jd.value = savedJd;
 
