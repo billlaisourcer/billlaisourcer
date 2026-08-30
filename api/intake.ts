@@ -211,6 +211,20 @@ export async function POST(request: Request): Promise<Response> {
 
     const searches = message.content.filter((b) => b.type === "mcp_tool_use").length;
 
+    // When a slate comes back empty the useful question is what the search tools
+    // said — credits exhausted, zero matches, or an error. Without this the
+    // failure is indistinguishable from a bad prompt.
+    const toolEvidence = message.content
+      .filter((b): b is Extract<typeof b, { type: "mcp_tool_result" }> =>
+        b.type === "mcp_tool_result")
+      .map((b) => {
+        const text = (b.content ?? [])
+          .map((c) => (c.type === "text" ? c.text : ""))
+          .join(" ")
+          .replace(/\s+/g, " ");
+        return { is_error: b.is_error ?? false, preview: text.slice(0, 400) };
+      });
+
     if (!text.trim()) {
       return json(
         { error: "The model returned no text — likely ran out of tokens mid-slate.", searches },
@@ -239,6 +253,8 @@ export async function POST(request: Request): Promise<Response> {
           error: "The generated slate did not match the intake schema.",
           issues: result.error.issues.slice(0, 10),
           searches,
+          tool_results: toolEvidence,
+          model_said: text.slice(0, 800),
         },
         502,
       );
