@@ -1548,9 +1548,14 @@
       clearInterval(ticker);
       $runBtn.disabled = false;
       $recalBtn.disabled = false;
+      // Every run spends real money. Showing what it cost, on the run itself,
+      // is the only way that stays visible.
+      var costBit = typeof meta.cost_usd === "number"
+        ? " Cost <b>$" + meta.cost_usd.toFixed(2) + "</b>."
+        : "";
       $runHint.innerHTML = "Sourced <b>" + (meta.candidates || 0) + "</b> profiles across <b>" +
-        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>. " +
-        "The Intake JSON tab has the raw slate.";
+        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>." + costBit +
+        " The Intake JSON tab has the raw slate.";
     } catch (err) {
       showError("Could not reach the sourcing endpoint.\n" + (err && err.message ? err.message : err));
       finish("failed", "bad");

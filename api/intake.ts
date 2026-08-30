@@ -270,7 +270,21 @@ export async function POST(request: Request): Promise<Response> {
       // Lower effort means fewer, more consolidated tool calls — the single
       // biggest lever on wall-clock here.
       output_config: { effort: "medium" },
-      system: SYSTEM,
+      // One explicit breakpoint at the end of the static prefix. Tools render
+      // before system, so this caches the toolset and the system prompt together.
+      //
+      // The bigger win is indirect: once a request uses caching at all, the
+      // server inserts its own cache writes after each tool result inside the
+      // MCP loop. Without this marker every internal iteration re-reads the
+      // whole accumulated search history at full price — which is what made a
+      // single run cost as much as it did.
+      //
+      // Deliberately NOT using top-level automatic caching: it would place the
+      // breakpoint after the JD, which is unique per run, so every request
+      // would pay the write premium on bytes nothing ever reads back.
+      system: [
+        { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ],
       messages: [{ role: "user", content: userParts.join("") }],
       mcp_servers: [
         {
@@ -285,6 +299,26 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     const message = await stream.finalMessage();
+
+    // Cache health is invisible unless you look: the request still succeeds
+    // when caching silently breaks, the bill is just higher. cache_read should
+    // be non-zero on any run past the first within the TTL.
+    const u = message.usage;
+    const usage = {
+      input_tokens: u.input_tokens ?? 0,
+      output_tokens: u.output_tokens ?? 0,
+      cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
+      cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
+    };
+    // Claude Opus 5: $5 / MTok in, $25 / MTok out. Cache reads bill at ~0.1x
+    // input, writes at ~1.25x.
+    const cost =
+      (usage.input_tokens * 5 +
+        usage.cache_read_input_tokens * 0.5 +
+        usage.cache_creation_input_tokens * 6.25 +
+        usage.output_tokens * 25) /
+      1_000_000;
+    console.log("intake usage", JSON.stringify({ ...usage, cost_usd: cost }));
 
     if (message.stop_reason === "refusal") {
       return json(
@@ -363,10 +397,8 @@ export async function POST(request: Request): Promise<Response> {
           searches,
           candidates: result.data.candidates.length,
           stop_reason: message.stop_reason,
-          usage: {
-            input_tokens: message.usage.input_tokens,
-            output_tokens: message.usage.output_tokens,
-          },
+          usage,
+          cost_usd: Math.round(cost * 10000) / 10000,
         },
       },
       200,
