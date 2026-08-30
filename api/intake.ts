@@ -123,11 +123,12 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== "POST") {
-    return json({ error: "Use POST." }, 405);
-  }
-
+/**
+ * Named-method export, not a default export: Vercel's Node runtime reads a
+ * default export as the `(req, res) => void` signature and discards a returned
+ * Response. Naming the method also gives us a free 405 on everything else.
+ */
+export async function POST(request: Request): Promise<Response> {
   // Fail closed. Without a configured token this endpoint would let anyone on
   // the internet spend the owner's Super Carl credits and Anthropic tokens.
   const expected = process.env.APP_ACCESS_TOKEN;
