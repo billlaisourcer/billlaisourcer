@@ -1,0 +1,1070 @@
+<title>Calibration Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    --ground:      #F5F6F3;
+    --surface:     #FFFFFF;
+    --surface-sunk:#EDEFEA;
+    --ink:         #16211F;
+    --ink-muted:   #5C6B66;
+    --ink-faint:   #8A9791;
+    --hairline:    #DCE2DC;
+    --hairline-hi: #C6CFC8;
+    --accent:      #1F4E4A;
+    --accent-soft: #E4EDEA;
+    --score:       #A9721E;
+    --score-bar:   #C98A2B;
+    --good:        #2F6E4F;
+    --good-soft:   #E2EFE7;
+    --warn:        #8A5E10;
+    --warn-soft:   #F6EBD6;
+    --crit:        #A33A2E;
+    --crit-soft:   #F7E3E0;
+    --focus:       #1F4E4A;
+
+    --f-chrome: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-prose:  "Source Serif 4", Georgia, "Times New Roman", serif;
+    --f-data:   "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --r: 4px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1614;
+      --surface:     #151F1D;
+      --surface-sunk:#101917;
+      --ink:         #E6EBE7;
+      --ink-muted:   #9AAAA4;
+      --ink-faint:   #6E7E78;
+      --hairline:    #26332F;
+      --hairline-hi: #38473F;
+      --accent:      #5FB3A6;
+      --accent-soft: #1A2E2B;
+      --score:       #E0A54A;
+      --score-bar:   #C98A2B;
+      --good:        #6DBE92;
+      --good-soft:   #16281F;
+      --warn:        #D9A047;
+      --warn-soft:   #2A2214;
+      --crit:        #E58275;
+      --crit-soft:   #2E1A17;
+      --focus:       #5FB3A6;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0E1614;
+    --surface:     #151F1D;
+    --surface-sunk:#101917;
+    --ink:         #E6EBE7;
+    --ink-muted:   #9AAAA4;
+    --ink-faint:   #6E7E78;
+    --hairline:    #26332F;
+    --hairline-hi: #38473F;
+    --accent:      #5FB3A6;
+    --accent-soft: #1A2E2B;
+    --score:       #E0A54A;
+    --score-bar:   #C98A2B;
+    --good:        #6DBE92;
+    --good-soft:   #16281F;
+    --warn:        #D9A047;
+    --warn-soft:   #2A2214;
+    --crit:        #E58275;
+    --crit-soft:   #2E1A17;
+    --focus:       #5FB3A6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-chrome);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: flex-end; justify-content: space-between;
+    padding: 20px clamp(16px, 3vw, 32px) 16px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .masthead h1 {
+    margin: 0;
+    font-size: 19px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 3px 0 0;
+    font-family: var(--f-prose);
+    font-size: 14px; color: var(--ink-muted);
+    max-width: 62ch;
+  }
+  .masthead__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    font-family: var(--f-chrome);
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 8px 14px;
+    border: 1px solid var(--hairline-hi);
+    border-radius: var(--r);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary {
+    background: var(--accent); border-color: var(--accent);
+    color: var(--surface);
+  }
+  :root[data-theme="dark"] button.primary,
+  .dk button.primary { color: #0E1614; }
+  button.primary:hover { filter: brightness(1.08); color: var(--surface); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.primary { color: #0E1614; }
+    :root:not([data-theme="light"]) button.primary:hover { color: #0E1614; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    button { transition: border-color .12s ease, color .12s ease; }
+  }
+
+  /* ---------- shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    align-items: start;
+  }
+  @media (min-width: 980px) {
+    .shell { grid-template-columns: minmax(320px, 380px) 1fr; }
+    .pane--in {
+      position: sticky; top: 0;
+      max-height: 100vh;
+      border-right: 1px solid var(--hairline);
+      border-bottom: none;
+    }
+  }
+
+  .pane--in {
+    display: flex; flex-direction: column;
+    background: var(--surface-sunk);
+    border-bottom: 1px solid var(--hairline);
+    padding: 16px clamp(14px, 2vw, 20px);
+    gap: 10px;
+    min-height: 0;
+  }
+  .pane__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .pane__head h2 {
+    margin: 0; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--ink-faint);
+  }
+
+  textarea {
+    flex: 1 1 auto;
+    min-height: 300px;
+    resize: vertical;
+    font-family: var(--f-data);
+    font-size: 12px; line-height: 1.55;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--hairline-hi);
+    border-radius: var(--r);
+    padding: 12px;
+    tab-size: 2;
+  }
+
+  .err {
+    font-family: var(--f-data); font-size: 12px;
+    color: var(--crit); background: var(--crit-soft);
+    border: 1px solid var(--crit);
+    border-radius: var(--r);
+    padding: 9px 11px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  details.help { font-size: 12.5px; color: var(--ink-muted); }
+  details.help summary { cursor: pointer; font-weight: 600; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  details.help ul { margin: 8px 0 0; padding-left: 18px; }
+  details.help li { margin-bottom: 5px; font-family: var(--f-prose); }
+  details.help code { font-family: var(--f-data); font-size: 11.5px; color: var(--accent); }
+
+  /* ---------- output ---------- */
+  .pane--out { padding: clamp(18px, 3vw, 34px); min-width: 0; }
+  .doc { max-width: 1000px; margin: 0 auto; }
+
+  .reqhead { margin-bottom: 26px; }
+  .reqhead .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .reqhead h2 {
+    margin: 5px 0 10px;
+    font-size: clamp(23px, 3.2vw, 31px); font-weight: 700;
+    letter-spacing: -0.02em; line-height: 1.14;
+    text-wrap: balance;
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--ink-muted); }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .musts {
+    margin-top: 14px; padding: 12px 14px;
+    background: var(--accent-soft);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0;
+  }
+  .musts h3 {
+    margin: 0 0 6px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+  }
+  .musts ul { margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 14px; }
+
+  h3.sec {
+    margin: 34px 0 12px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-bottom: 7px; border-bottom: 1px solid var(--hairline);
+  }
+  h3.sec .n { color: var(--ink-faint); font-family: var(--f-data); font-weight: 500; }
+
+  .scroll { overflow-x: auto; }
+
+  table.slate { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
+  table.slate th {
+    text-align: left; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 10px 7px 0; border-bottom: 1px solid var(--hairline-hi);
+    white-space: nowrap;
+  }
+  table.slate td {
+    padding: 11px 10px 11px 0;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: middle;
+  }
+  table.slate td.rk {
+    font-family: var(--f-data); font-size: 12px; color: var(--ink-faint);
+    width: 30px;
+  }
+  table.slate td.nm { font-weight: 600; white-space: nowrap; }
+  table.slate td.role { color: var(--ink-muted); font-size: 13px; }
+  .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+  td.fit { width: 108px; }
+  .fitwrap { display: flex; flex-direction: column; gap: 4px; }
+  .fitval { font-family: var(--f-data); font-variant-numeric: tabular-nums;
+    font-weight: 600; font-size: 15px; color: var(--score); }
+  .bar { height: 3px; background: var(--hairline); border-radius: 2px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--score-bar); }
+  .bar.mut > i { background: var(--ink-faint); }
+
+  .chip {
+    display: inline-block;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 2.5px 7px; border-radius: 2px; white-space: nowrap;
+    border: 1px solid var(--hairline-hi); color: var(--ink-muted);
+  }
+  .chip.hi   { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+  .chip.md   { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .chip.lo   { background: var(--surface-sunk); color: var(--ink-faint); }
+  .chip.both { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .chip.ok   { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+  .chip.bad  { background: var(--crit-soft); color: var(--crit); border-color: var(--crit); }
+
+  .band {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--ink-muted); white-space: nowrap;
+  }
+
+  .note {
+    font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted);
+    margin: 10px 0 0; max-width: 78ch;
+  }
+
+  /* candidate cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .card.blocked { border-left: 3px solid var(--crit); }
+  .card.held    { border-left: 3px solid var(--ink-faint); background: var(--surface-sunk); }
+
+  .card__top { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: baseline;
+    justify-content: space-between; }
+  .card__name { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .card__rk { font-family: var(--f-data); color: var(--ink-faint); font-weight: 500; }
+  .card__score { display: flex; align-items: baseline; gap: 7px; }
+  .card__score .v { font-family: var(--f-data); font-variant-numeric: tabular-nums;
+    font-size: 26px; font-weight: 600; color: var(--score); line-height: 1; }
+  .card__score .d { font-size: 12px; color: var(--ink-faint); font-family: var(--f-data); }
+  .card__sub { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-muted);
+    font-family: var(--f-prose); }
+  .card__links { margin-top: 7px; display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; }
+  .card__links a { color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid var(--hairline-hi); }
+  .card__links a:hover { border-bottom-color: var(--accent); }
+  .card__links code { font-family: var(--f-data); font-size: 11px; color: var(--ink-faint); }
+  .card__chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+
+  .flag {
+    display: flex; gap: 8px; align-items: flex-start;
+    margin-top: 12px; padding: 9px 12px;
+    border-radius: var(--r); font-size: 13px; font-weight: 600;
+    background: var(--warn-soft); color: var(--warn);
+  }
+  .flag.crit { background: var(--crit-soft); color: var(--crit); }
+  .flag .ic { font-family: var(--f-data); font-weight: 700; line-height: 1.35; }
+
+  table.dims { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  table.dims th {
+    text-align: left; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 10px 6px 0; border-bottom: 1px solid var(--hairline);
+  }
+  table.dims td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--hairline);
+    vertical-align: top; }
+  table.dims td.dim { font-weight: 600; white-space: nowrap; width: 1%; }
+  table.dims td.rat { width: 1%; white-space: nowrap; font-family: var(--f-data);
+    font-variant-numeric: tabular-nums; font-size: 12.5px; }
+  table.dims td.rat.unk { color: var(--ink-faint); font-style: normal; }
+  table.dims td.ev { font-family: var(--f-prose); color: var(--ink-muted); line-height: 1.45; }
+  table.dims td.ev.none { font-style: italic; color: var(--ink-faint); }
+
+  .dots { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: -1px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hairline-hi); }
+  .dots i.on { background: var(--score-bar); }
+
+  .tests {
+    margin-top: 13px; padding-top: 11px; border-top: 1px dashed var(--hairline-hi);
+    font-family: var(--f-prose); font-size: 13.5px; color: var(--ink);
+  }
+  .tests b { font-family: var(--f-chrome); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    display: block; margin-bottom: 3px; }
+
+  table.rub { border-collapse: collapse; font-size: 13px; }
+  table.rub td { padding: 5px 22px 5px 0; border-bottom: 1px solid var(--hairline); }
+  table.rub td.w { font-family: var(--f-data); font-variant-numeric: tabular-nums;
+    color: var(--ink-muted); }
+
+  .audit { border: 1px solid var(--warn); background: var(--warn-soft);
+    border-radius: var(--r); padding: 14px 18px; }
+  .audit h4 { margin: 0 0 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--warn); }
+  .audit ul { margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 13.5px;
+    color: var(--ink); }
+  .audit li { margin-bottom: 5px; }
+
+  .empty { color: var(--ink-faint); font-family: var(--f-prose); font-size: 15px;
+    padding: 40px 0; max-width: 56ch; }
+  .empty b { color: var(--ink); }
+</style>
+
+<header class="masthead">
+  <div>
+    <h1>Calibration Scorecard</h1>
+    <p>Paste an intake slate and get the scored read — same arithmetic as <code style="font-family:var(--f-data);font-size:12.5px">score_candidates.py</code>, running in the browser.</p>
+  </div>
+  <div class="masthead__actions">
+    <button id="btn-example" type="button">Load example</button>
+    <button id="btn-copy" class="primary" type="button">Copy markdown</button>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="pane pane--in">
+    <div class="pane__head">
+      <h2>Intake JSON</h2>
+      <span class="chip" id="status">empty</span>
+    </div>
+    <textarea id="input" spellcheck="false" aria-label="Intake JSON"></textarea>
+    <div class="err" id="err" hidden></div>
+    <details class="help">
+      <summary>Field reference</summary>
+      <ul>
+        <li><code>req</code> — title, company, location, seniority_band, must_haves[]</li>
+        <li><code>weights</code> — optional override, must total 100</li>
+        <li><code>candidates[].sources</code> — <code>{seekout, pin}</code>; both true is the confidence signal</li>
+        <li><code>candidates[].pin_status</code> — unreviewed · shortlisted · accepted · rejected · not_found</li>
+        <li><code>candidates[].band</code> — on_target · stretch_senior · stretch_junior · adjacent · probe</li>
+        <li><code>candidates[].scores.&lt;dim&gt;</code> — <code>{rating: 0–5 or null, evidence}</code>. Use <code>null</code> when there is no evidence; never guess a rating.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="pane pane--out">
+    <div class="doc" id="out"></div>
+  </section>
+</main>
+
+<script type="application/json" id="example-data">
+{
+  "req": {
+    "title": "Staff ML Infrastructure Engineer",
+    "company": "Northwind AI",
+    "location": "San Francisco Bay Area",
+    "seniority_band": "Staff IC, 8-14 yrs, owns a platform surface end to end",
+    "must_haves": [
+      "Production ML training or inference infrastructure at scale",
+      "Python + Kubernetes in production",
+      "Owned a platform used by other engineering teams"
+    ],
+    "target_companies": ["Databricks", "Snowflake", "Anyscale", "Scale AI", "Weights & Biases"]
+  },
+  "candidates": [
+    {
+      "name": "Dana Okafor",
+      "title": "Staff ML Platform Engineer",
+      "company": "Anyscale",
+      "location": "San Francisco, CA",
+      "linkedin": "https://www.linkedin.com/in/example-dana",
+      "seekout_profile_key": "so_example_001",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "unreviewed",
+      "band": "on_target",
+      "calibration_question": "Is this the exact shape the client means by Staff?",
+      "scores": {
+        "must_have_coverage": { "rating": 5, "evidence": "Owns Ray Serve inference platform; Python/K8s daily; platform consumed by 40+ internal engineers" },
+        "seniority_scope": { "rating": 5, "evidence": "Staff IC 4 yrs, 11 yrs total, tech lead for a 6-person platform team" },
+        "domain_pedigree": { "rating": 5, "evidence": "Anyscale is on the target list; prior tenure at Databricks" },
+        "skill_depth": { "rating": 4, "evidence": "Ray core contributor, 300+ commits upstream" },
+        "location_authorization": { "rating": 5, "evidence": "Based in SF, no relocation needed" },
+        "trajectory_stability": { "rating": 4, "evidence": "3.5 yr average tenure, each move a level up" }
+      }
+    },
+    {
+      "name": "Marcus Vance",
+      "title": "Principal Infrastructure Engineer",
+      "company": "Snowflake",
+      "location": "San Mateo, CA",
+      "seekout_profile_key": "so_example_002",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "unreviewed",
+      "band": "stretch_senior",
+      "calibration_question": "Will the client stretch to Principal comp, or is Staff a hard ceiling?",
+      "scores": {
+        "must_have_coverage": { "rating": 4, "evidence": "Runs Snowflake's GPU training fleet; K8s yes, Python secondary to Go" },
+        "seniority_scope": { "rating": 5, "evidence": "Principal, 16 yrs, owns org-wide compute platform" },
+        "domain_pedigree": { "rating": 5, "evidence": "Snowflake is a named target company" },
+        "skill_depth": { "rating": 5, "evidence": "Authored internal GPU scheduler, three patents on workload placement" },
+        "location_authorization": { "rating": 5, "evidence": "Bay Area resident" },
+        "trajectory_stability": { "rating": 5, "evidence": "6 yr current tenure, consistent upward scope" }
+      }
+    },
+    {
+      "name": "Priya Raghunathan",
+      "title": "Senior ML Engineer",
+      "company": "Weights & Biases",
+      "location": "Oakland, CA",
+      "seekout_profile_key": "so_example_003",
+      "sources": { "seekout": true, "pin": false },
+      "pin_status": "not_found",
+      "band": "stretch_junior",
+      "calibration_question": "Does a strong Senior with 6 yrs clear the bar, or is 8+ genuinely required?",
+      "scores": {
+        "must_have_coverage": { "rating": 3, "evidence": "Built model-registry service; K8s in production; platform used by two adjacent teams" },
+        "seniority_scope": { "rating": 3, "evidence": "Senior, 6 yrs total — under the stated 8-14 band" },
+        "domain_pedigree": { "rating": 5, "evidence": "W&B is on the target list" },
+        "skill_depth": { "rating": 4, "evidence": "Python-primary, maintains an OSS experiment-tracking client" },
+        "location_authorization": { "rating": 5, "evidence": "Oakland, in-market" },
+        "trajectory_stability": { "rating": 4, "evidence": "2.5 yr average tenure, steady progression" }
+      }
+    },
+    {
+      "name": "Tomas Lindgren",
+      "title": "Staff Software Engineer, Distributed Systems",
+      "company": "Stripe",
+      "location": "San Francisco, CA",
+      "sources": { "seekout": false, "pin": true },
+      "pin_status": "unreviewed",
+      "band": "adjacent",
+      "calibration_question": "Will the client take distributed-systems depth without ML-specific infra history?",
+      "scores": {
+        "must_have_coverage": { "rating": 2, "evidence": "Deep production K8s and Python, but no ML training or inference platform history" },
+        "seniority_scope": { "rating": 5, "evidence": "Staff, 12 yrs, owns Stripe's job-orchestration platform" },
+        "domain_pedigree": { "rating": 2, "evidence": "Fintech infra, not on the ML-platform target list" },
+        "skill_depth": { "rating": 5, "evidence": "Rebuilt a scheduler handling 100k+ jobs/min" },
+        "location_authorization": { "rating": 5, "evidence": "SF-based" },
+        "trajectory_stability": { "rating": 5, "evidence": "5 yr tenure, scope grew each year" }
+      }
+    },
+    {
+      "name": "Elena Marchetti",
+      "title": "ML Infrastructure Lead",
+      "company": "Scale AI",
+      "location": "San Francisco, CA",
+      "seekout_profile_key": "so_example_005",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "rejected",
+      "pin_rejection_reason": "TOO_MUCH_EXPERIENCE",
+      "band": "on_target",
+      "calibration_question": "Already passed on — included only to show the pipeline-conflict flag.",
+      "scores": {
+        "must_have_coverage": { "rating": 5, "evidence": "Leads Scale's training infrastructure org" },
+        "seniority_scope": { "rating": 4, "evidence": "Lead/manager hybrid, 13 yrs" },
+        "domain_pedigree": { "rating": 5, "evidence": "Scale AI is a named target" },
+        "skill_depth": { "rating": 4, "evidence": "Python and K8s throughout, GPU cluster ownership" },
+        "location_authorization": { "rating": 5, "evidence": "SF-based" },
+        "trajectory_stability": { "rating": 4, "evidence": "4 yr current tenure" }
+      }
+    },
+    {
+      "name": "Jordan Whitfield",
+      "title": "Infrastructure Engineer",
+      "company": "Undisclosed stealth startup",
+      "location": "Berkeley, CA",
+      "seekout_profile_key": "so_example_006",
+      "sources": { "seekout": true, "pin": false },
+      "pin_status": "not_found",
+      "band": "probe",
+      "calibration_question": "Does a thin public profile disqualify, or is the client willing to have us dig?",
+      "scores": {
+        "must_have_coverage": { "rating": null, "evidence": "Profile lists no employer detail; cannot verify platform ownership" },
+        "seniority_scope": { "rating": null, "evidence": "No level or tenure data on the profile" },
+        "domain_pedigree": { "rating": null, "evidence": "Employer undisclosed" },
+        "skill_depth": { "rating": 4, "evidence": "GitHub shows sustained Kubernetes operator work in Go and Python" },
+        "location_authorization": { "rating": 5, "evidence": "Berkeley, in-market" },
+        "trajectory_stability": { "rating": null, "evidence": "No tenure history available" }
+      }
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     Scoring core — a faithful port of scripts/score_candidates.py.
+     Any change here must be mirrored there, or the page and the
+     committed scorecard stop agreeing.
+     ============================================================ */
+
+  var DEFAULT_WEIGHTS = {
+    must_have_coverage: 30,
+    seniority_scope: 20,
+    domain_pedigree: 15,
+    skill_depth: 15,
+    location_authorization: 10,
+    trajectory_stability: 10
+  };
+  var DIM_ORDER = Object.keys(DEFAULT_WEIGHTS);
+  var LABELS = {
+    must_have_coverage: "Must-haves",
+    seniority_scope: "Seniority & scope",
+    domain_pedigree: "Domain pedigree",
+    skill_depth: "Skill depth",
+    location_authorization: "Location & auth",
+    trajectory_stability: "Trajectory"
+  };
+  var BANDS = {
+    on_target: "On target",
+    stretch_senior: "Stretch — senior",
+    stretch_junior: "Stretch — junior",
+    adjacent: "Adjacent industry",
+    probe: "Probe / non-obvious"
+  };
+  var SOURCE_LABEL = {
+    both: "SeekOut + Pin", seekout_only: "SeekOut", pin_only: "Pin", none: "—"
+  };
+  var EVIDENCE_FLOOR = 60;
+  var MAX_RATING = 5;
+
+  function IntakeError(msg) { this.message = msg; }
+
+  // Python's round() is half-to-even; mirror it so the two never disagree.
+  function roundHalfEven(x, digits) {
+    var f = Math.pow(10, digits || 0);
+    var scaled = x * f;
+    var fl = Math.floor(scaled);
+    var diff = scaled - fl;
+    var n;
+    if (Math.abs(diff - 0.5) < 1e-9) n = (fl % 2 === 0) ? fl : fl + 1;
+    else n = Math.round(scaled);
+    return n / f;
+  }
+
+  function resolveWeights(doc) {
+    var w = {}, k;
+    for (k in DEFAULT_WEIGHTS) w[k] = DEFAULT_WEIGHTS[k];
+    var ov = doc.weights || {};
+    var unknown = [];
+    for (k in ov) if (!(k in DEFAULT_WEIGHTS)) unknown.push(k);
+    if (unknown.length) throw new IntakeError("unknown weight keys: " + JSON.stringify(unknown.sort()));
+    for (k in ov) w[k] = ov[k];
+    var total = 0;
+    for (k in w) total += w[k];
+    if (total !== 100) throw new IntakeError("weights must sum to 100, got " + total);
+    return w;
+  }
+
+  function scoreCandidate(cand, weights) {
+    var scores = cand.scores || {};
+    var earned = 0, possible = 0, scored = 0, dim;
+
+    for (dim in weights) {
+      var entry = scores[dim] || {};
+      var rating = entry.rating;
+      if (rating === null || rating === undefined) continue;
+      if (typeof rating !== "number" || rating < 0 || rating > MAX_RATING) {
+        throw new IntakeError((cand.name || "?") + ": " + dim +
+          " rating must be 0-" + MAX_RATING + " or null, got " + JSON.stringify(rating));
+      }
+      earned += (rating / MAX_RATING) * weights[dim];
+      possible += weights[dim];
+      scored += 1;
+    }
+
+    var total = 0;
+    for (dim in weights) total += weights[dim];
+    var composite = possible ? roundHalfEven(100 * earned / possible, 1) : null;
+    var coverage = roundHalfEven(100 * possible / total, 0);
+
+    var src = cand.sources || {};
+    var inSo = !!src.seekout, inPin = !!src.pin;
+    var corr = (inSo && inPin) ? "both" : inSo ? "seekout_only" : inPin ? "pin_only" : "none";
+
+    var conf = corr === "both" ? 2 : corr !== "none" ? 1 : 0;
+    if (coverage >= 80) conf += 1;
+    else if (coverage < 60) conf -= 1;
+
+    return {
+      composite: composite,
+      evidence_coverage: coverage,
+      scored_dimensions: scored,
+      corroboration: corr,
+      confidence: conf >= 3 ? "High" : conf === 2 ? "Medium" : "Low"
+    };
+  }
+
+  function buildFlags(cand, c) {
+    var flags = [];
+    var status = String(cand.pin_status || "not_found").toLowerCase();
+
+    if (status === "rejected") {
+      flags.push({ level: "crit", text: "BLOCKED — already rejected on this req (" +
+        (cand.pin_rejection_reason || "reason not recorded") + ")" });
+    } else if (status === "accepted") {
+      flags.push({ level: "crit", text: "IN PIPELINE — already accepted, " +
+        (cand.pin_stage || "active stage") });
+    } else if (status === "shortlisted") {
+      flags.push({ level: "warn", text: "Already shortlisted on this req" });
+    }
+
+    if (c.corroboration === "pin_only") {
+      flags.push({ level: "warn", text: "Pin-only — the SeekOut boolean missed them; widen titles or skills" });
+    } else if (c.corroboration === "seekout_only") {
+      flags.push({ level: "warn", text: "SeekOut-only — absent from Pin's ranked pool" });
+    }
+
+    if (c.evidence_coverage < 60) {
+      flags.push({ level: "warn", text: "Thin evidence — only " + c.evidence_coverage +
+        "% of the rubric is evidenced" });
+    }
+    return flags;
+  }
+
+  function auditSpread(rows) {
+    var notes = [], counts = {}, i;
+    for (i = 0; i < rows.length; i++) {
+      var b = rows[i].band || "unbanded";
+      counts[b] = (counts[b] || 0) + 1;
+    }
+    var onT = counts.on_target || 0;
+    var stretch = (counts.stretch_senior || 0) + (counts.stretch_junior || 0);
+    var edge = (counts.adjacent || 0) + (counts.probe || 0);
+
+    if (rows.length && onT === rows.length) {
+      notes.push("Every profile is on-target. The slate cannot test the seniority band or the " +
+        "must-haves — add stretch and adjacent profiles before sending it to the client.");
+    }
+    if (stretch === 0 && rows.length >= 5) {
+      notes.push("No stretch profiles — the seniority band goes untested.");
+    }
+    if (edge === 0 && rows.length >= 5) {
+      notes.push("No adjacent or probe profiles — nothing tests how strict the must-haves really are.");
+    }
+    var blocked = rows.filter(function (r) {
+      return r.flags.some(function (f) { return f.text.indexOf("BLOCKED") === 0; });
+    });
+    if (blocked.length) {
+      notes.push("Remove before sending — previously rejected on this req: " +
+        blocked.map(function (r) { return r.name; }).join(", ") + ".");
+    }
+    return notes;
+  }
+
+  function evaluate(doc) {
+    var weights = resolveWeights(doc);
+    var cands = doc.candidates || [];
+    if (!cands.length) throw new IntakeError("no candidates in intake file");
+
+    var rows = cands.map(function (cand) {
+      if (!cand.name) throw new IntakeError("every candidate needs a name");
+      var c = scoreCandidate(cand, weights);
+      var row = Object.assign({}, cand, c);
+      row.flags = buildFlags(cand, c);
+      return row;
+    });
+
+    rows.sort(function (a, b) {
+      var an = a.composite === null, bn = b.composite === null;
+      if (an !== bn) return an ? 1 : -1;
+      return (b.composite || 0) - (a.composite || 0);
+    });
+
+    var ranked = rows.filter(function (r) { return r.evidence_coverage >= EVIDENCE_FLOOR; });
+    var provisional = rows.filter(function (r) { return r.evidence_coverage < EVIDENCE_FLOOR; });
+    ranked.forEach(function (r, i) { r.rank = i + 1; });
+    provisional.forEach(function (r) { r.rank = null; });
+
+    return {
+      req: doc.req || {}, weights: weights, rows: rows,
+      ranked: ranked, provisional: provisional, spread_notes: auditSpread(rows)
+    };
+  }
+
+  /* ============================ rendering ============================ */
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+  function fmt(v, dash) { return (v === null || v === undefined || v === "") ? (dash || "—") : String(v); }
+
+  function chipCls(conf) { return conf === "High" ? "hi" : conf === "Medium" ? "md" : "lo"; }
+
+  function slateTable(rows) {
+    var h = '<div class="scroll"><table class="slate"><thead><tr>' +
+      "<th>#</th><th>Candidate</th><th>Current role</th><th>Band</th>" +
+      "<th>Fit</th><th>Evid.</th><th>Conf.</th><th>Sources</th></tr></thead><tbody>";
+    rows.forEach(function (r) {
+      var blocked = r.flags.some(function (f) { return f.text.indexOf("BLOCKED") === 0 ||
+        f.text.indexOf("IN PIPELINE") === 0; });
+      var held = r.rank === null;
+      h += "<tr>" +
+        '<td class="rk">' + (r.rank === null ? "—" : r.rank) + "</td>" +
+        '<td class="nm">' + esc(r.name) +
+          (blocked ? ' <span class="chip bad">conflict</span>' : "") + "</td>" +
+        '<td class="role">' + esc(fmt(r.title)) + " · " + esc(fmt(r.company)) + "</td>" +
+        '<td><span class="band">' + esc(BANDS[r.band] || fmt(r.band)) + "</span></td>" +
+        '<td class="fit"><div class="fitwrap">' +
+          '<span class="fitval">' + (r.composite === null ? "—" : r.composite.toFixed(1)) + "</span>" +
+          '<span class="bar' + (held ? " mut" : "") + '"><i style="width:' +
+            (r.composite === null ? 0 : r.composite) + '%"></i></span>' +
+        "</div></td>" +
+        '<td class="num">' + r.evidence_coverage + "%</td>" +
+        '<td><span class="chip ' + chipCls(r.confidence) + '">' + r.confidence + "</span></td>" +
+        '<td><span class="chip' + (r.corroboration === "both" ? " both" : "") + '">' +
+          esc(SOURCE_LABEL[r.corroboration]) + "</span></td>" +
+        "</tr>";
+    });
+    return h + "</tbody></table></div>";
+  }
+
+  function dots(rating) {
+    var h = '<span class="dots">';
+    for (var i = 1; i <= 5; i++) h += "<i" + (rating !== null && i <= rating ? ' class="on"' : "") + "></i>";
+    return h + "</span>";
+  }
+
+  function card(r, weights) {
+    var blocked = r.flags.some(function (f) { return f.text.indexOf("BLOCKED") === 0 ||
+      f.text.indexOf("IN PIPELINE") === 0; });
+    var held = r.rank === null;
+    var cls = "card" + (blocked ? " blocked" : held ? " held" : "");
+
+    var h = '<article class="' + cls + '">';
+    h += '<div class="card__top"><div>';
+    h += '<h4 class="card__name"><span class="card__rk">' +
+      (held ? "Held out" : r.rank) + "</span> &nbsp;" + esc(r.name) + "</h4>";
+    h += '<p class="card__sub">' + esc(fmt(r.title)) + " @ " + esc(fmt(r.company)) +
+      " · " + esc(fmt(r.location)) + "</p>";
+    var links = [];
+    if (r.linkedin) links.push('<a href="' + esc(r.linkedin) + '" target="_blank" rel="noopener">LinkedIn</a>');
+    if (r.seekout_profile_key) links.push("<code>" + esc(r.seekout_profile_key) + "</code>");
+    if (links.length) h += '<div class="card__links">' + links.join("") + "</div>";
+    h += "</div>";
+    h += '<div class="card__score"><span class="v">' +
+      (r.composite === null ? "—" : r.composite.toFixed(1)) +
+      '</span><span class="d">/100</span></div>';
+    h += "</div>";
+
+    h += '<div class="card__chips">' +
+      '<span class="band">' + esc(BANDS[r.band] || fmt(r.band)) + "</span>" +
+      '<span class="chip ' + chipCls(r.confidence) + '">' + r.confidence + " confidence</span>" +
+      '<span class="chip' + (r.corroboration === "both" ? " both" : "") + '">' +
+        esc(SOURCE_LABEL[r.corroboration]) + "</span>" +
+      '<span class="chip">' + r.evidence_coverage + "% evidenced</span>" +
+      "</div>";
+
+    r.flags.forEach(function (f) {
+      h += '<div class="flag' + (f.level === "crit" ? " crit" : "") + '">' +
+        '<span class="ic">' + (f.level === "crit" ? "!" : "*") + "</span><span>" +
+        esc(f.text) + "</span></div>";
+    });
+
+    h += '<table class="dims"><thead><tr><th>Dimension</th><th>Rating</th><th>Evidence</th></tr></thead><tbody>';
+    DIM_ORDER.forEach(function (dim) {
+      if (!(dim in weights)) return;
+      var e = (r.scores || {})[dim] || {};
+      var rating = (e.rating === undefined) ? null : e.rating;
+      var ev = e.evidence;
+      h += "<tr>" +
+        '<td class="dim">' + esc(LABELS[dim] || dim) + "</td>" +
+        '<td class="rat' + (rating === null ? " unk" : "") + '">' +
+          dots(rating) + (rating === null ? "unknown" : rating + "/5") + "</td>" +
+        '<td class="ev' + (ev ? "" : " none") + '">' + esc(ev || "no evidence found") + "</td>" +
+        "</tr>";
+    });
+    h += "</tbody></table>";
+
+    if (r.calibration_question) {
+      h += '<div class="tests"><b>Tests</b>' + esc(r.calibration_question) + "</div>";
+    }
+    return h + "</article>";
+  }
+
+  function renderHTML(res) {
+    var req = res.req, h = "";
+
+    h += '<div class="reqhead">';
+    h += '<div class="eyebrow">Calibration slate</div>';
+    h += "<h2>" + esc(fmt(req.title, "Untitled role")) + " <span style=\"color:var(--ink-faint);font-weight:600\">@</span> " +
+      esc(fmt(req.company, "Unknown company")) + "</h2>";
+    h += '<div class="meta">' +
+      "<span><b>Location</b> " + esc(fmt(req.location)) + "</span>" +
+      "<span><b>Band</b> " + esc(fmt(req.seniority_band)) + "</span>" +
+      "<span><b>Slate</b> " + res.rows.length + " profiles</span>" +
+      "</div>";
+    if ((req.must_haves || []).length) {
+      h += '<div class="musts"><h3>Must-haves scored against</h3><ul>' +
+        req.must_haves.map(function (m) { return "<li>" + esc(m) + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+    h += "</div>";
+
+    h += '<h3 class="sec">Ranked slate <span class="n">' + res.ranked.length + "</span></h3>";
+    h += res.ranked.length ? slateTable(res.ranked) :
+      '<p class="note">No profile clears the evidence floor.</p>';
+    h += '<p class="note">Fit is 0–100, weighted across the rubric and normalised over the dimensions ' +
+      "that had evidence. Evid. is the share of rubric weight actually evidenced.</p>";
+
+    if (res.provisional.length) {
+      h += '<h3 class="sec">Held out — under the ' + EVIDENCE_FLOOR +
+        '% evidence floor <span class="n">' + res.provisional.length + "</span></h3>";
+      h += slateTable(res.provisional);
+      h += '<p class="note">Too little of the rubric is evidenced for these composites to be compared ' +
+        "against the ranked slate. Enrich the profile and re-score, or drop them — do not present " +
+        "the number as a read.</p>";
+    }
+
+    h += '<h3 class="sec">Rubric</h3><table class="rub"><tbody>';
+    DIM_ORDER.forEach(function (d) {
+      if (!(d in res.weights)) return;
+      h += "<tr><td>" + esc(LABELS[d] || d) + '</td><td class="w">' + res.weights[d] + "</td></tr>";
+    });
+    h += "</tbody></table>";
+
+    h += '<h3 class="sec">Per-candidate reasoning</h3>';
+    res.ranked.concat(res.provisional).forEach(function (r) { h += card(r, res.weights); });
+
+    if (res.spread_notes.length) {
+      h += '<h3 class="sec">Slate audit</h3><div class="audit"><h4>Before this goes to the client</h4><ul>' +
+        res.spread_notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+    return h;
+  }
+
+  /* markdown export — mirrors the Python renderer so both agree */
+  function renderMarkdown(res) {
+    var req = res.req, out = [];
+    function row(r) {
+      var blocked = r.flags.some(function (f) { return f.text.indexOf("BLOCKED") === 0 ||
+        f.text.indexOf("IN PIPELINE") === 0; });
+      return "| " + (r.rank === null ? "—" : r.rank) + " | " + r.name + (blocked ? " ⛔" : "") +
+        " | " + fmt(r.title) + " @ " + fmt(r.company) +
+        " | " + (BANDS[r.band] || fmt(r.band)) +
+        " | " + (r.composite === null ? "—" : "**" + r.composite.toFixed(1) + "**") +
+        " | " + r.evidence_coverage + "% | " + r.confidence +
+        " | " + SOURCE_LABEL[r.corroboration] + " |";
+    }
+    var head = ["| # | Candidate | Current role | Band | Fit | Evid. | Conf. | Sources |",
+                "|---|---|---|---|---|---|---|---|"];
+
+    out.push("# Calibration scorecard — " + fmt(req.title, "Untitled role") + " @ " + fmt(req.company, "Unknown company"), "");
+    out.push("**Location:** " + fmt(req.location) + "  ");
+    out.push("**Seniority band:** " + fmt(req.seniority_band) + "  ");
+    out.push("**Slate:** " + res.rows.length + " profiles", "");
+    if ((req.must_haves || []).length) {
+      out.push("**Must-haves scored against:**");
+      req.must_haves.forEach(function (m) { out.push("- " + m); });
+      out.push("");
+    }
+    out.push("## Ranked slate", "");
+    out = out.concat(head, res.ranked.map(row), "");
+    out.push("_Fit is 0\u2013100, weighted across the rubric below and normalised over the " +
+      "dimensions that had evidence. Evid. is the share of rubric weight actually " +
+      "evidenced. \u26D4 marks a pipeline conflict \u2014 see the flag on the candidate._", "");
+    if (res.provisional.length) {
+      out.push("## Held out \u2014 under the " + EVIDENCE_FLOOR + "% evidence floor", "");
+      out = out.concat(head, res.provisional.map(row), "");
+      out.push("_Too little of the rubric is evidenced for these composites to be compared " +
+        "against the ranked slate. Enrich the profile and re-score, or drop them \u2014 " +
+        "do not present the number as a read._", "");
+    }
+    out.push("## Rubric", "", "| Dimension | Weight |", "|---|---|");
+    DIM_ORDER.forEach(function (d) {
+      if (d in res.weights) out.push("| " + (LABELS[d] || d) + " | " + res.weights[d] + " |");
+    });
+    out.push("", "## Per-candidate reasoning", "");
+    res.ranked.concat(res.provisional).forEach(function (r) {
+      out.push("### " + (r.rank === null ? "Held out — " : r.rank + ". ") + r.name + " — " +
+        (r.composite === null ? "—" : r.composite.toFixed(1)) + "/100 · " + (BANDS[r.band] || fmt(r.band)), "");
+      out.push(fmt(r.title) + " @ " + fmt(r.company) + " · " + fmt(r.location));
+      var l = [];
+      if (r.linkedin) l.push("[LinkedIn](" + r.linkedin + ")");
+      if (r.seekout_profile_key) l.push("`" + r.seekout_profile_key + "`");
+      if (l.length) out.push(l.join(" · "));
+      out.push("");
+      if (r.flags.length) {
+        r.flags.forEach(function (f) { out.push("> **" + f.text + "**"); });
+        out.push("");
+      }
+      out.push("| Dimension | Rating | Evidence |", "|---|---|---|");
+      DIM_ORDER.forEach(function (d) {
+        if (!(d in res.weights)) return;
+        var e = (r.scores || {})[d] || {};
+        var rt = (e.rating === undefined) ? null : e.rating;
+        out.push("| " + (LABELS[d] || d) + " | " + (rt === null ? "unknown" : rt + "/5") +
+          " | " + (e.evidence || "_no evidence found_") + " |");
+      });
+      out.push("");
+      if (r.calibration_question) out.push("**Tests:** " + r.calibration_question, "");
+    });
+    if (res.spread_notes.length) {
+      out.push("## Slate audit", "");
+      res.spread_notes.forEach(function (n) { out.push("- " + n); });
+      out.push("");
+    }
+    return out.join("\n");
+  }
+
+  /* ============================ wiring ============================ */
+
+  var $in = document.getElementById("input");
+  var $out = document.getElementById("out");
+  var $err = document.getElementById("err");
+  var $status = document.getElementById("status");
+  var EXAMPLE = document.getElementById("example-data").textContent.trim();
+  var lastResult = null;
+
+  var EMPTY = '<p class="empty">Paste an intake slate on the left, or <b>Load example</b> to see a ' +
+    'scored six-profile slate — including one candidate the req already rejected and one held ' +
+    "back for thin evidence.</p>";
+
+  function setStatus(text, cls) {
+    $status.textContent = text;
+    $status.className = "chip" + (cls ? " " + cls : "");
+  }
+
+  function run() {
+    var raw = $in.value.trim();
+    try { localStorage.setItem("calibration-scorecard:input", raw); } catch (e) { /* private mode */ }
+
+    if (!raw) {
+      lastResult = null;
+      $err.hidden = true;
+      $out.innerHTML = EMPTY;
+      setStatus("empty");
+      return;
+    }
+    var doc;
+    try {
+      doc = JSON.parse(raw);
+    } catch (e) {
+      lastResult = null;
+      $err.hidden = false;
+      $err.textContent = "That isn't valid JSON.\n" + e.message;
+      setStatus("invalid JSON", "bad");
+      return;
+    }
+    var res;
+    try {
+      res = evaluate(doc);
+    } catch (e) {
+      lastResult = null;
+      $err.hidden = false;
+      $err.textContent = e.message || String(e);
+      setStatus("check the file", "bad");
+      return;
+    }
+    lastResult = res;
+    $err.hidden = true;
+    $out.innerHTML = renderHTML(res);
+    setStatus(res.rows.length + " scored", "ok");
+  }
+
+  var t;
+  $in.addEventListener("input", function () {
+    clearTimeout(t);
+    t = setTimeout(run, 180);
+  });
+
+  document.getElementById("btn-example").addEventListener("click", function () {
+    $in.value = EXAMPLE;
+    run();
+  });
+
+  document.getElementById("btn-copy").addEventListener("click", function (ev) {
+    var btn = ev.currentTarget;
+    if (!lastResult) { btn.textContent = "Nothing to copy"; setTimeout(function () {
+      btn.textContent = "Copy markdown"; }, 1400); return; }
+    var md = renderMarkdown(lastResult);
+    function done(ok) {
+      btn.textContent = ok ? "Copied" : "Press Ctrl+C";
+      setTimeout(function () { btn.textContent = "Copy markdown"; }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(md).then(function () { done(true); },
+        function () { fallback(md, done); });
+    } else { fallback(md, done); }
+  });
+
+  function fallback(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    done(ok);
+  }
+
+  var saved = null;
+  try { saved = localStorage.getItem("calibration-scorecard:input"); } catch (e) { saved = null; }
+  $in.value = saved || EXAMPLE;
+  run();
+})();
+</script>

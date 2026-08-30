@@ -30,6 +30,22 @@ you wrote. Pin ranks independently and knows the req's history. Diffing them cat
 query being too narrow, and catches candidates the client already passed on — the fastest
 way to lose their confidence in a search.
 
+## Web UI
+
+A browser version of the scorer is published as an artifact — paste an intake JSON, get the
+scored slate, copy the markdown back out. No terminal, no Python, shareable by link:
+
+**https://claude.ai/code/artifact/893b1886-6a8f-4427-8a10-2f4dc0766112**
+
+The source is `web/index.html`, a single self-contained file. Its scoring core is a port of
+`scripts/score_candidates.py` and the two are verified to produce byte-identical markdown —
+if you change the rubric in one, change it in the other and re-run the parity check:
+
+```bash
+python3 scripts/score_candidates.py examples/intake.example.json > /tmp/py.md
+# extract the JS core and run it over the same fixture, then diff against /tmp/py.md
+```
+
 ## Usage
 
 The skill triggers on its own whenever a new JD arrives — pasted text, a posting URL, or
@@ -91,6 +107,7 @@ Outreach is a separate decision the recruiter makes after seeing the brief.
   references/cross-reference.md  the two-engine diff and query-repair loop
   references/brief-template.md   what gets delivered
 scripts/score_candidates.py      deterministic scorer and markdown renderer
+web/index.html                   browser UI; scoring core ported from the script
 schema/intake.schema.json        intake file format
 examples/intake.example.json     illustrative fixture (invented people)
 briefs/                          committed slates and scorecards, one per req
