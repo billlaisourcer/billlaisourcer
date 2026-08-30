@@ -220,6 +220,9 @@
     .pane--in {
       position: sticky; top: 0;
       height: 100vh;
+      /* The recalibration panel can push this past the viewport; without a
+         scroller the bottom of the pane is simply unreachable. */
+      overflow-y: auto;
       border-right: 1px solid var(--hairline);
       border-bottom: none;
     }
@@ -273,7 +276,7 @@
   .mode { display: flex; flex-direction: column; gap: 9px; flex: 1 1 auto; min-height: 0; }
   /* The JD pane carries four more controls beneath it, so it needs a shorter
      floor than the JSON pane or the run button falls below the fold. */
-  #jd { min-height: 170px; }
+  #jd { min-height: 150px; flex: 0 1 auto; }
   .mode[hidden] { display: none; }
 
   .field {
@@ -286,6 +289,26 @@
 
   button.wide { width: 100%; padding: 10px; font-size: 13.5px; }
   button[disabled] { opacity: .55; cursor: progress; }
+
+  .recal {
+    margin-top: 3px; padding: 13px 14px;
+    background: var(--accent-soft);
+    border: 1px solid var(--hairline-hi);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .recal[hidden] { display: none; }
+  .recal__head {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .recal textarea {
+    min-height: 74px; font-family: var(--f-chrome); font-size: 13px; line-height: 1.45;
+  }
+  .recal__eg {
+    margin: 0; font-size: 12px; color: var(--ink-faint); line-height: 1.5;
+  }
 
   .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
   .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
@@ -553,6 +576,17 @@
       </select>
       <button class="primary wide" id="btn-run" type="button">Source &amp; score</button>
       <p class="hint" id="run-hint">Runs a live candidate search. Expect two to five minutes.</p>
+
+      <div class="recal" id="recal" hidden>
+        <div class="recal__head">Not right? Adjust and run again</div>
+        <textarea class="field" id="recal-text" spellcheck="false" aria-label="Feedback on the slate"
+          placeholder="Say what was wrong with these profiles…"></textarea>
+        <p class="recal__eg">Be specific about the miss: &ldquo;too junior&rdquo;, &ldquo;wrong
+          industry, need consumer not enterprise&rdquo;, &ldquo;more hands-on community, less
+          paid acquisition&rdquo;. The search changes to answer it, and skips everyone it
+          already showed you.</p>
+        <button class="wide" id="btn-recal" type="button">Re-run with this feedback</button>
+      </div>
     </div>
 
     <div class="mode" id="mode-json" hidden>
@@ -1316,7 +1350,12 @@
     $err.textContent = message;
   }
 
-  $runBtn.addEventListener("click", async function () {
+  var $recal = document.getElementById("recal");
+  var $recalText = document.getElementById("recal-text");
+  var $recalBtn = document.getElementById("btn-recal");
+  var lastSlate = [];
+
+  async function runSearch(feedback) {
     var jd = $jd.value.trim();
     if (jd.length < 120) {
       showError("Paste the full job description — at least a couple of paragraphs.");
@@ -1325,7 +1364,8 @@
     }
     $err.hidden = true;
     $runBtn.disabled = true;
-    setStatus("sourcing", "md");
+    $recalBtn.disabled = true;
+    setStatus(feedback ? "re-running" : "sourcing", "md");
 
     var started = Date.now();
     var ticker = setInterval(function () {
@@ -1337,6 +1377,7 @@
     function finish(statusText, statusClass) {
       clearInterval(ticker);
       $runBtn.disabled = false;
+      $recalBtn.disabled = false;
       $runHint.textContent = IDLE_HINT;
       setStatus(statusText, statusClass);
     }
@@ -1349,7 +1390,9 @@
           jd: jd,
           location: $jdLocation.value.trim(),
           notes: $jdNotes.value.trim(),
-          count: parseInt(document.getElementById("jd-count").value, 10)
+          count: parseInt(document.getElementById("jd-count").value, 10),
+          feedback: feedback || "",
+          previous: feedback ? lastSlate : []
         })
       });
 
@@ -1381,10 +1424,17 @@
       store("calibration-scorecard:input", $in.value);
       run();
 
+      lastSlate = ((payload.intake || {}).candidates || []).map(function (c) {
+        return c.name + " — " + (c.title || "?") + " @ " + (c.company || "?");
+      });
+      $recal.hidden = false;
+      $recalText.value = "";
+
       var meta = payload.meta || {};
       var elapsed = Math.round((Date.now() - started) / 1000);
       clearInterval(ticker);
       $runBtn.disabled = false;
+      $recalBtn.disabled = false;
       $runHint.innerHTML = "Sourced <b>" + (meta.candidates || 0) + "</b> profiles across <b>" +
         (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>. " +
         "The Intake JSON tab has the raw slate.";
@@ -1392,6 +1442,18 @@
       showError("Could not reach the sourcing endpoint.\n" + (err && err.message ? err.message : err));
       finish("failed", "bad");
     }
+  }
+
+  $runBtn.addEventListener("click", function () { runSearch(""); });
+
+  $recalBtn.addEventListener("click", function () {
+    var fb = $recalText.value.trim();
+    if (fb.length < 4) {
+      showError("Say what was wrong with the slate so the next search can answer it.");
+      $recalText.focus();
+      return;
+    }
+    runSearch(fb);
   });
 
   /* ---------- restore ---------- */

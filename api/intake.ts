@@ -76,6 +76,22 @@ ${RUBRIC_TABLE}
 - **Never invent a person, employer, tenure, or link.** Every candidate must come from an
   actual tool result. A slate with fewer real people beats one padded with plausible ones.
 
+## Recalibration passes
+
+A request may arrive with recruiter feedback on a previous slate. That feedback is the
+most reliable signal available — it is a real reaction to real profiles, which beats any
+inference you can draw from the JD alone. When it is present:
+
+- Work out what the feedback implies about the search, not just the individuals. "Too
+  junior" means the seniority band was read wrong; "wrong industry" means the target
+  company set was wrong; "need more hands-on community" means a must-have was
+  under-weighted.
+- Change the search accordingly — different titles, different companies, a different
+  angle — rather than re-running the same query and hoping for different people.
+- Say what you changed in weights_rationale, even when the weights themselves did not
+  move, so the recruiter can see the adjustment was made.
+- Feel free to reweight the rubric if the feedback implies the balance was wrong.
+
 ## Reweighting
 
 If the JD explicitly de-emphasises a dimension, override the weights and say why in
@@ -142,7 +158,14 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Server is not configured: ANTHROPIC_API_KEY is unset." }, 503);
   }
 
-  let body: { jd?: unknown; location?: unknown; notes?: unknown; count?: unknown };
+  let body: {
+    jd?: unknown;
+    location?: unknown;
+    notes?: unknown;
+    count?: unknown;
+    feedback?: unknown;
+    previous?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -163,9 +186,31 @@ export async function POST(request: Request): Promise<Response> {
   const location = typeof body.location === "string" ? body.location.trim() : "";
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
+  const feedback = typeof body.feedback === "string" ? body.feedback.trim() : "";
+  const previous = Array.isArray(body.previous)
+    ? body.previous.filter((x): x is string => typeof x === "string").slice(0, 12)
+    : [];
+
   const userParts = [`Job description:\n\n${jd}`];
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
+
+  if (feedback) {
+    userParts.push(
+      `\n\n--- RECALIBRATION ---\nThis is a second pass. The recruiter reviewed the ` +
+        `previous slate and said:\n\n"${feedback}"\n\nTreat that as the strongest signal ` +
+        `you have — stronger than your own first reading of the JD. Change the search to ` +
+        `answer it, do not repeat the same angle.`,
+    );
+    if (previous.length) {
+      userParts.push(
+        `\n\nThe previous slate was:\n${previous.map((p) => `  - ${p}`).join("\n")}\n` +
+          `Do not return these people again unless the feedback specifically asks for more ` +
+          `like one of them.`,
+      );
+    }
+  }
+
   userParts.push(
     `\n\nSource and score a ${count}-profile calibration slate. Search before you score, ` +
       `and keep to at most 4 searches — this runs under a hard time budget.`,
