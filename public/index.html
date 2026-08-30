@@ -452,9 +452,12 @@
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
       <input class="field" id="jd-notes" placeholder="Anything the JD does not say (optional)">
-      <input class="field" id="jd-token" type="password" placeholder="Access token" autocomplete="off">
+      <input class="field" id="jd-token" type="password" autocomplete="off"
+        placeholder="APP_ACCESS_TOKEN — the value you set in Vercel">
       <button class="primary wide" id="btn-run" type="button">Source &amp; score</button>
       <p class="hint" id="run-hint">Runs a live candidate search. Expect two to five minutes.</p>
+      <p class="hint">The token is the <b>APP_ACCESS_TOKEN</b> environment variable, not your
+        Anthropic or Super Carl key — those stay on the server and never reach this page.</p>
     </div>
 
     <div class="mode" id="mode-json" hidden>
