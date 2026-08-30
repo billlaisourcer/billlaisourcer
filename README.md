@@ -47,7 +47,10 @@ Three variables, all required. The endpoint **fails closed** without them.
 |---|---|
 | `APP_ACCESS_TOKEN` | Gate on `/api/intake`. Without it anyone with the URL spends your credits. |
 | `SUPERCARL_API_KEY` | Super Carl programmatic access — mint at `/integrations/connections`. |
-| `ANTHROPIC_API_KEY` | The dissection and scoring reasoning. |
+| `ANTHROPIC_API_KEY` | Starts `sk-ant-api03-`, ~100+ chars. Billed separately from a Claude subscription. |
+
+Set the **value**, not the website you got it from — pasting a URL is the most
+common way this breaks, and it surfaces as `invalid x-api-key`.
 
 See `.env.example`. Set the same three in **Vercel → Settings → Environment Variables**.
 
