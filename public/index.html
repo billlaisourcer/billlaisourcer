@@ -187,8 +187,25 @@
     :root:not([data-theme="light"]) button.primary { color: #040D1E; }
     :root:not([data-theme="light"]) button.primary:hover { color: #040D1E; }
   }
+  a.btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--f-chrome); font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); color: var(--ink-muted); text-decoration: none;
+  }
+  a.btn:hover { border-color: var(--accent); color: var(--accent); }
+  a.btn .arrow { font-size: 11px; opacity: .8; }
+
+  button.quiet { font-weight: 500; color: var(--ink-muted); }
+  button.quiet:hover { color: var(--accent); }
+
+  .sep {
+    width: 1px; align-self: stretch; margin: 2px 3px;
+    background: var(--hairline);
+  }
+
   @media (prefers-reduced-motion: no-preference) {
-    button { transition: border-color .12s ease, color .12s ease; }
+    button, a.btn { transition: border-color .12s ease, color .12s ease; }
   }
 
   /* ---------- shell ---------- */
@@ -505,6 +522,11 @@
     </div>
   </div>
   <div class="masthead__actions">
+    <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
+      Source Direct <span class="arrow">&#8599;</span>
+    </a>
+    <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
+    <span class="sep" aria-hidden="true"></span>
     <button id="btn-example" type="button">Load example</button>
     <button id="btn-copy" class="primary" type="button">Copy markdown</button>
   </div>
@@ -1233,6 +1255,14 @@
   $gatePw.addEventListener("keydown", function (e) {
     if (e.key === "Enter") tryGate();
     else $gateErr.hidden = true;
+  });
+
+  document.getElementById("btn-lock").addEventListener("click", function () {
+    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    $gatePw.value = "";
+    $gateErr.hidden = true;
+    $gate.hidden = false;
+    $gatePw.focus();
   });
 
   var unlocked = null;
