@@ -218,11 +218,18 @@ export async function POST(request: Request): Promise<Response> {
       .filter((b): b is Extract<typeof b, { type: "mcp_tool_result" }> =>
         b.type === "mcp_tool_result")
       .map((b) => {
-        const text = (b.content ?? [])
-          .map((c) => (c.type === "text" ? c.text : ""))
-          .join(" ")
-          .replace(/\s+/g, " ");
-        return { is_error: b.is_error ?? false, preview: text.slice(0, 400) };
+        // content is `string | BetaTextBlock[]` depending on the tool.
+        const raw = b.content;
+        const text =
+          typeof raw === "string"
+            ? raw
+            : (raw ?? [])
+                .map((c) => (c.type === "text" ? c.text : ""))
+                .join(" ");
+        return {
+          is_error: b.is_error ?? false,
+          preview: text.replace(/\s+/g, " ").slice(0, 400),
+        };
       });
 
     if (!text.trim()) {
