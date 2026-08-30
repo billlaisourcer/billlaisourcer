@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/billlaisourcer/billlaisourcer/schema/intake.schema.json",
+  "title": "JD intake calibration slate",
+  "description": "Input to scripts/score_candidates.py. One file per req.",
+  "type": "object",
+  "required": ["req", "candidates"],
+  "properties": {
+    "req": {
+      "type": "object",
+      "required": ["title", "company"],
+      "properties": {
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "location": { "type": "string" },
+        "seniority_band": { "type": "string" },
+        "must_haves": { "type": "array", "items": { "type": "string" } },
+        "nice_to_haves": { "type": "array", "items": { "type": "string" } },
+        "target_companies": { "type": "array", "items": { "type": "string" } },
+        "pin_job_id": { "type": "string", "description": "Pin job UUID this slate was cross-referenced against" },
+        "seekout_search_link": { "type": "string", "description": "Shareable SeekOut link from get_search_links" }
+      }
+    },
+    "weights": {
+      "type": "object",
+      "description": "Optional per-req rubric override. Must sum to 100. Document any override in the brief.",
+      "additionalProperties": false,
+      "properties": {
+        "must_have_coverage": { "type": "integer" },
+        "seniority_scope": { "type": "integer" },
+        "domain_pedigree": { "type": "integer" },
+        "skill_depth": { "type": "integer" },
+        "location_authorization": { "type": "integer" },
+        "trajectory_stability": { "type": "integer" }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "sources", "scores"],
+        "properties": {
+          "name": { "type": "string" },
+          "title": { "type": "string" },
+          "company": { "type": "string" },
+          "location": { "type": "string" },
+          "linkedin": { "type": "string" },
+          "seekout_profile_key": { "type": "string" },
+          "pin_candidate_job_id": { "type": "string" },
+          "sources": {
+            "type": "object",
+            "description": "Which retrieval engine surfaced this person. Both true is the strongest confidence signal.",
+            "properties": {
+              "seekout": { "type": "boolean" },
+              "pin": { "type": "boolean" }
+            }
+          },
+          "pin_status": {
+            "type": "string",
+            "enum": ["unreviewed", "shortlisted", "accepted", "rejected", "not_found"],
+            "description": "From Pin get_candidate. 'not_found' means Pin has never seen them on this req."
+          },
+          "pin_rejection_reason": { "type": ["string", "null"] },
+          "pin_stage": { "type": ["string", "null"] },
+          "band": {
+            "type": "string",
+            "enum": ["on_target", "stretch_senior", "stretch_junior", "adjacent", "probe"],
+            "description": "Where this profile sits on the calibration spectrum. A slate needs a spread."
+          },
+          "calibration_question": {
+            "type": "string",
+            "description": "What showing this person to the client actually tests."
+          },
+          "scores": {
+            "type": "object",
+            "description": "One entry per rubric dimension. Omit the dimension, or set rating to null, when there is no evidence — never guess a rating.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "rating": {
+                  "type": ["number", "null"],
+                  "minimum": 0,
+                  "maximum": 5,
+                  "description": "0-5, or null when unevidenced. Null is excluded from the weighted denominator."
+                },
+                "evidence": {
+                  "type": "string",
+                  "description": "The specific profile fact supporting the rating. No fact, no rating."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

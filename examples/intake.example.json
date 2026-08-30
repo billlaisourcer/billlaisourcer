@@ -1,0 +1,136 @@
+{
+  "_note": "Illustrative fixture with invented people, used to exercise the scorer and show the file format. Not real candidates. Never ship a slate built from placeholder data to a client.",
+  "req": {
+    "title": "Staff ML Infrastructure Engineer",
+    "company": "Northwind AI",
+    "location": "San Francisco Bay Area",
+    "seniority_band": "Staff IC, 8-14 yrs, owns a platform surface end to end",
+    "must_haves": [
+      "Production ML training or inference infrastructure at scale",
+      "Python + Kubernetes in production",
+      "Owned a platform used by other engineering teams"
+    ],
+    "nice_to_haves": ["Ray or Kubeflow", "GPU scheduling", "Open source contributions"],
+    "target_companies": ["Databricks", "Snowflake", "Anyscale", "Scale AI", "Weights & Biases"],
+    "pin_job_id": "00000000-0000-0000-0000-000000000000",
+    "seekout_search_link": "https://app.seekout.com/search/example"
+  },
+  "candidates": [
+    {
+      "name": "Dana Okafor",
+      "title": "Staff ML Platform Engineer",
+      "company": "Anyscale",
+      "location": "San Francisco, CA",
+      "linkedin": "https://www.linkedin.com/in/example-dana",
+      "seekout_profile_key": "so_example_001",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "unreviewed",
+      "band": "on_target",
+      "calibration_question": "Is this the exact shape the client means by Staff?",
+      "scores": {
+        "must_have_coverage": { "rating": 5, "evidence": "Owns Ray Serve inference platform; Python/K8s daily; platform consumed by 40+ internal engineers" },
+        "seniority_scope": { "rating": 5, "evidence": "Staff IC 4 yrs, 11 yrs total, tech lead for a 6-person platform team" },
+        "domain_pedigree": { "rating": 5, "evidence": "Anyscale is on the target list; prior tenure at Databricks" },
+        "skill_depth": { "rating": 4, "evidence": "Ray core contributor, 300+ commits upstream" },
+        "location_authorization": { "rating": 5, "evidence": "Based in SF, no relocation needed" },
+        "trajectory_stability": { "rating": 4, "evidence": "3.5 yr average tenure, each move a level up" }
+      }
+    },
+    {
+      "name": "Marcus Vance",
+      "title": "Principal Infrastructure Engineer",
+      "company": "Snowflake",
+      "location": "San Mateo, CA",
+      "seekout_profile_key": "so_example_002",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "unreviewed",
+      "band": "stretch_senior",
+      "calibration_question": "Will the client stretch to Principal comp, or is Staff a hard ceiling?",
+      "scores": {
+        "must_have_coverage": { "rating": 4, "evidence": "Runs Snowflake's GPU training fleet; K8s yes, Python secondary to Go" },
+        "seniority_scope": { "rating": 5, "evidence": "Principal, 16 yrs, owns org-wide compute platform" },
+        "domain_pedigree": { "rating": 5, "evidence": "Snowflake is a named target company" },
+        "skill_depth": { "rating": 5, "evidence": "Authored internal GPU scheduler, three patents on workload placement" },
+        "location_authorization": { "rating": 5, "evidence": "Bay Area resident" },
+        "trajectory_stability": { "rating": 5, "evidence": "6 yr current tenure, consistent upward scope" }
+      }
+    },
+    {
+      "name": "Priya Raghunathan",
+      "title": "Senior ML Engineer",
+      "company": "Weights & Biases",
+      "location": "Oakland, CA",
+      "seekout_profile_key": "so_example_003",
+      "sources": { "seekout": true, "pin": false },
+      "pin_status": "not_found",
+      "band": "stretch_junior",
+      "calibration_question": "Does a strong Senior with 6 yrs clear the bar, or is 8+ genuinely required?",
+      "scores": {
+        "must_have_coverage": { "rating": 3, "evidence": "Built model-registry service; K8s in production; platform used by two adjacent teams" },
+        "seniority_scope": { "rating": 3, "evidence": "Senior, 6 yrs total — under the stated 8-14 band" },
+        "domain_pedigree": { "rating": 5, "evidence": "W&B is on the target list" },
+        "skill_depth": { "rating": 4, "evidence": "Python-primary, maintains an OSS experiment-tracking client" },
+        "location_authorization": { "rating": 5, "evidence": "Oakland, in-market" },
+        "trajectory_stability": { "rating": 4, "evidence": "2.5 yr average tenure, steady progression" }
+      }
+    },
+    {
+      "name": "Tomas Lindgren",
+      "title": "Staff Software Engineer, Distributed Systems",
+      "company": "Stripe",
+      "location": "San Francisco, CA",
+      "sources": { "seekout": false, "pin": true },
+      "pin_candidate_job_id": "pin_example_004",
+      "pin_status": "unreviewed",
+      "band": "adjacent",
+      "calibration_question": "Will the client take distributed-systems depth without ML-specific infra history?",
+      "scores": {
+        "must_have_coverage": { "rating": 2, "evidence": "Deep production K8s and Python, but no ML training or inference platform history" },
+        "seniority_scope": { "rating": 5, "evidence": "Staff, 12 yrs, owns Stripe's job-orchestration platform" },
+        "domain_pedigree": { "rating": 2, "evidence": "Fintech infra, not on the ML-platform target list" },
+        "skill_depth": { "rating": 5, "evidence": "Rebuilt a scheduler handling 100k+ jobs/min" },
+        "location_authorization": { "rating": 5, "evidence": "SF-based" },
+        "trajectory_stability": { "rating": 5, "evidence": "5 yr tenure, scope grew each year" }
+      }
+    },
+    {
+      "name": "Elena Marchetti",
+      "title": "ML Infrastructure Lead",
+      "company": "Scale AI",
+      "location": "San Francisco, CA",
+      "seekout_profile_key": "so_example_005",
+      "sources": { "seekout": true, "pin": true },
+      "pin_status": "rejected",
+      "pin_rejection_reason": "TOO_MUCH_EXPERIENCE",
+      "band": "on_target",
+      "calibration_question": "Already passed on — included only to show the pipeline-conflict flag.",
+      "scores": {
+        "must_have_coverage": { "rating": 5, "evidence": "Leads Scale's training infrastructure org" },
+        "seniority_scope": { "rating": 4, "evidence": "Lead/manager hybrid, 13 yrs" },
+        "domain_pedigree": { "rating": 5, "evidence": "Scale AI is a named target" },
+        "skill_depth": { "rating": 4, "evidence": "Python and K8s throughout, GPU cluster ownership" },
+        "location_authorization": { "rating": 5, "evidence": "SF-based" },
+        "trajectory_stability": { "rating": 4, "evidence": "4 yr current tenure" }
+      }
+    },
+    {
+      "name": "Jordan Whitfield",
+      "title": "Infrastructure Engineer",
+      "company": "Undisclosed stealth startup",
+      "location": "Berkeley, CA",
+      "seekout_profile_key": "so_example_006",
+      "sources": { "seekout": true, "pin": false },
+      "pin_status": "not_found",
+      "band": "probe",
+      "calibration_question": "Does a thin public profile disqualify, or is the client willing to have us dig?",
+      "scores": {
+        "must_have_coverage": { "rating": null, "evidence": "Profile lists no employer detail; cannot verify platform ownership" },
+        "seniority_scope": { "rating": null, "evidence": "No level or tenure data on the profile" },
+        "domain_pedigree": { "rating": null, "evidence": "Employer undisclosed" },
+        "skill_depth": { "rating": 4, "evidence": "GitHub shows sustained Kubernetes operator work in Go and Python" },
+        "location_authorization": { "rating": 5, "evidence": "Berkeley, in-market" },
+        "trajectory_stability": { "rating": null, "evidence": "No tenure history available" }
+      }
+    }
+  ]
+}
