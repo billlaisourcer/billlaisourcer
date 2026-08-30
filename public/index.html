@@ -310,6 +310,50 @@
     margin: 0; font-size: 12px; color: var(--ink-faint); line-height: 1.5;
   }
 
+  /* Recruiter-stated requirements. Collapsed by default: the pane is already
+     tight, and an open pair of textareas pushes the run button below the fold. */
+  .reqs {
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); padding: 0;
+  }
+  .reqs > summary {
+    list-style: none; cursor: pointer;
+    padding: 8px 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .reqs > summary::-webkit-details-marker { display: none; }
+  .reqs > summary::before {
+    content: "\25B8"; font-size: 10px; color: var(--ink-faint);
+    transition: transform .12s ease;
+  }
+  .reqs[open] > summary::before { transform: rotate(90deg); }
+  .reqs > summary:hover { color: var(--accent); }
+  .reqs__count {
+    margin-left: auto; font-family: var(--f-data); font-size: 11px;
+    letter-spacing: 0; text-transform: none; color: var(--accent);
+  }
+  .reqs__count:empty { display: none; }
+  .reqs__body {
+    padding: 0 10px 11px; display: flex; flex-direction: column; gap: 5px;
+    border-top: 1px solid var(--hairline);
+  }
+  .reqs__note {
+    margin: 9px 0 2px; font-family: var(--f-prose); font-size: 12px;
+    line-height: 1.5; color: var(--ink-faint);
+  }
+  .reqs__label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted); margin-top: 5px;
+  }
+  .reqs__ta {
+    flex: 0 0 auto; min-height: 68px; resize: vertical;
+    font-family: var(--f-chrome); font-size: 13px; line-height: 1.5;
+  }
+  .reqs__cap { margin: 0; font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
+  .reqs__cap.is-over { color: var(--score); }
+
   .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
   .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
 
@@ -570,6 +614,26 @@
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
       <input class="field" id="jd-notes" placeholder="Anything the JD does not say (optional)">
+      <details class="reqs" id="reqs">
+        <summary>Requirements<span class="reqs__count" id="reqs-count"></span></summary>
+        <div class="reqs__body">
+          <p class="reqs__note">One per line. What you write here replaces the model&rsquo;s own
+            reading of the JD &mdash; must-haves drive 30% of every score, so this is the single
+            biggest lever on the slate you get back.</p>
+
+          <label class="reqs__label" for="req-must">Must have</label>
+          <textarea class="field reqs__ta" id="req-must" spellcheck="false"
+            aria-label="Must-have requirements, one per line"
+            placeholder="3+ years running community for a consumer app&#10;Owned lifecycle email end to end&#10;Based in the US"></textarea>
+          <p class="reqs__cap" id="cap-must">Up to 6. Every one is scored and a miss costs real points.</p>
+
+          <label class="reqs__label" for="req-nice">Good to have</label>
+          <textarea class="field reqs__ta" id="req-nice" spellcheck="false"
+            aria-label="Nice-to-have requirements, one per line"
+            placeholder="Health or wellness category&#10;Built a Discord or Slack community from zero"></textarea>
+          <p class="reqs__cap" id="cap-nice">Up to 8. These break ties and colour the reasoning; they never gate.</p>
+        </div>
+      </details>
       <select class="field" id="jd-count" aria-label="Slate size">
         <option value="10">10 profiles — full calibration slate</option>
         <option value="5">5 profiles — faster, good for a first test</option>
@@ -1345,6 +1409,53 @@
 
   $jd.addEventListener("input", function () { store("calibration-scorecard:jd", $jd.value); });
 
+  /* ---------- recruiter-stated requirements ---------- */
+
+  var $reqs = document.getElementById("reqs");
+  var $reqMust = document.getElementById("req-must");
+  var $reqNice = document.getElementById("req-nice");
+  var $reqCount = document.getElementById("reqs-count");
+  var $capMust = document.getElementById("cap-must");
+  var $capNice = document.getElementById("cap-nice");
+
+  var MUST_CAP = 6;   // matches the intake schema's max; a longer list fails validation
+  var NICE_CAP = 8;
+
+  function reqLines(el) {
+    return el.value.split("\n").map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; });
+  }
+
+  // The summary line has to say what is inside it, because the panel is collapsed
+  // by default and a forgotten must-have silently reshapes every score.
+  function syncReqs() {
+    var must = reqLines($reqMust);
+    var nice = reqLines($reqNice);
+
+    var over = must.length - MUST_CAP;
+    $capMust.classList.toggle("is-over", over > 0);
+    $capMust.textContent = over > 0
+      ? "Over by " + over + " — only the first " + MUST_CAP + " lines are used."
+      : "Up to " + MUST_CAP + ". Every one is scored and a miss costs real points.";
+
+    var overN = nice.length - NICE_CAP;
+    $capNice.classList.toggle("is-over", overN > 0);
+    $capNice.textContent = overN > 0
+      ? "Over by " + overN + " — only the first " + NICE_CAP + " lines are used."
+      : "Up to " + NICE_CAP + ". These break ties and colour the reasoning; they never gate.";
+
+    var bits = [];
+    if (must.length) bits.push(Math.min(must.length, MUST_CAP) + " must");
+    if (nice.length) bits.push(Math.min(nice.length, NICE_CAP) + " nice");
+    $reqCount.textContent = bits.join(" \u00B7 ");
+
+    store("calibration-scorecard:must", $reqMust.value);
+    store("calibration-scorecard:nice", $reqNice.value);
+  }
+
+  $reqMust.addEventListener("input", syncReqs);
+  $reqNice.addEventListener("input", syncReqs);
+
   function showError(message) {
     $err.hidden = false;
     $err.textContent = message;
@@ -1390,6 +1501,8 @@
           jd: jd,
           location: $jdLocation.value.trim(),
           notes: $jdNotes.value.trim(),
+          must_haves: reqLines($reqMust).slice(0, MUST_CAP),
+          nice_to_haves: reqLines($reqNice).slice(0, NICE_CAP),
           count: parseInt(document.getElementById("jd-count").value, 10),
           feedback: feedback || "",
           previous: feedback ? lastSlate : []
@@ -1460,6 +1573,13 @@
 
   var savedJd = recall("calibration-scorecard:jd");
   if (savedJd) $jd.value = savedJd;
+
+  $reqMust.value = recall("calibration-scorecard:must") || "";
+  $reqNice.value = recall("calibration-scorecard:nice") || "";
+  syncReqs();
+  // Only spring the panel open when it already carries something, so a returning
+  // user sees their list without a first-timer losing the run button off-screen.
+  if ($reqMust.value.trim() || $reqNice.value.trim()) $reqs.open = true;
 
   var saved = recall("calibration-scorecard:input");
   $in.value = saved || EXAMPLE;

@@ -76,6 +76,15 @@ ${RUBRIC_TABLE}
 - **Never invent a person, employer, tenure, or link.** Every candidate must come from an
   actual tool result. A slate with fewer real people beats one padded with plausible ones.
 
+## Recruiter-specified requirements
+
+A request may arrive with an explicit must-have or nice-to-have list. When it does, that
+list replaces your own reading of the JD — the recruiter has spoken to the client and you
+have not. Copy it into req.must_haves verbatim and score must_have_coverage against
+exactly those items, no more and no fewer. Do not silently add a requirement you think is
+implied, and do not drop one you judge unrealistic; if a stated must-have looks like it
+will empty the market, still score against it and say so in open_questions.
+
 ## Recalibration passes
 
 A request may arrive with recruiter feedback on a previous slate. That feedback is the
@@ -165,6 +174,8 @@ export async function POST(request: Request): Promise<Response> {
     count?: unknown;
     feedback?: unknown;
     previous?: unknown;
+    must_haves?: unknown;
+    nice_to_haves?: unknown;
   };
   try {
     body = await request.json();
@@ -186,6 +197,19 @@ export async function POST(request: Request): Promise<Response> {
   const location = typeof body.location === "string" ? body.location.trim() : "";
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
+  // The intake schema caps must_haves at 6, so trim here rather than letting the
+  // model produce a list that fails validation after a full sourcing run.
+  const lines = (v: unknown, cap: number): string[] =>
+    Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .slice(0, cap)
+      : [];
+
+  const mustHaves = lines(body.must_haves, 6);
+  const niceToHaves = lines(body.nice_to_haves, 8);
+
   const feedback = typeof body.feedback === "string" ? body.feedback.trim() : "";
   const previous = Array.isArray(body.previous)
     ? body.previous.filter((x): x is string => typeof x === "string").slice(0, 12)
@@ -194,6 +218,26 @@ export async function POST(request: Request): Promise<Response> {
   const userParts = [`Job description:\n\n${jd}`];
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
+
+  if (mustHaves.length || niceToHaves.length) {
+    const parts: string[] = ["\n\n--- RECRUITER-SPECIFIED REQUIREMENTS ---"];
+    if (mustHaves.length) {
+      parts.push(
+        `\nMust-haves. Use these VERBATIM as req.must_haves and score ` +
+          `must_have_coverage against exactly this list. Do not re-cut them from the JD, ` +
+          `do not reword them, do not add to them:\n` +
+          mustHaves.map((m) => `  - ${m}`).join("\n"),
+      );
+    }
+    if (niceToHaves.length) {
+      parts.push(
+        `\nNice-to-haves. Use these verbatim as req.nice_to_haves. They inform ` +
+          `skill_depth and domain_pedigree but never must_have_coverage:\n` +
+          niceToHaves.map((n) => `  - ${n}`).join("\n"),
+      );
+    }
+    userParts.push(parts.join("\n"));
+  }
 
   if (feedback) {
     userParts.push(
