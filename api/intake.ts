@@ -4,14 +4,14 @@ import Anthropic, {
   AuthenticationError,
   RateLimitError,
 } from "@anthropic-ai/sdk";
-import { IntakeSchema, extractJson } from "../lib/intake-schema.ts";
+import { IntakeSchema, extractJson } from "../lib/intake-schema.js";
 import {
   BAND_TARGETS,
   DEFAULT_WEIGHTS,
   DIMENSIONS,
   EVIDENCE_FLOOR,
   SLATE_SIZE,
-} from "../lib/rubric.ts";
+} from "../lib/rubric.js";
 
 /**
  * POST /api/intake

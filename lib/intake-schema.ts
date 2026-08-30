@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BANDS, DIMENSIONS, PIN_STATUSES } from "./rubric.ts";
+import { BANDS, DIMENSIONS, PIN_STATUSES } from "./rubric.js";
 
 /**
  * The contract the model must produce. Mirrors schema/intake.schema.json so a
