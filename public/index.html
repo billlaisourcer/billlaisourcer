@@ -644,7 +644,6 @@
     <div class="pane__head">
       <div class="tabs" role="tablist">
         <button class="tab is-on" id="tab-jd" role="tab" aria-selected="true" type="button">Job description</button>
-        <button class="tab" id="tab-json" role="tab" aria-selected="false" type="button">Intake JSON</button>
         <button class="tab" id="tab-history" role="tab" aria-selected="false" type="button">History</button>
       </div>
       <span class="chip" id="status">ready</span>
@@ -702,19 +701,10 @@
       <div class="hist" id="hist-list"></div>
     </div>
 
-    <div class="mode" id="mode-json" hidden>
+    <!-- Not a tab any more. The scorecard is rendered from whatever this holds,
+         so it stays in the DOM as the render path; it is never shown. -->
+    <div id="json-holder" hidden>
       <textarea id="input" spellcheck="false" aria-label="Intake JSON"></textarea>
-      <details class="help">
-      <summary>Field reference</summary>
-      <ul>
-        <li><code>req</code> — title, company, location, seniority_band, must_haves[]</li>
-        <li><code>weights</code> — optional override, must total 100</li>
-        <li><code>candidates[].sources</code> — <code>{seekout, pin}</code>; both true is the confidence signal</li>
-        <li><code>candidates[].pin_status</code> — unreviewed · shortlisted · accepted · rejected · not_found</li>
-        <li><code>candidates[].band</code> — on_target · stretch_senior · stretch_junior · adjacent · probe</li>
-        <li><code>candidates[].scores.&lt;dim&gt;</code> — <code>{rating: 0–5 or null, evidence}</code>. Use <code>null</code> when there is no evidence; never guess a rating.</li>
-      </ul>
-      </details>
     </div>
 
     <div class="err" id="err" hidden></div>
@@ -1290,9 +1280,9 @@
   var EXAMPLE = document.getElementById("example-data").textContent.trim();
   var lastResult = null;
 
-  var EMPTY = '<p class="empty">Paste an intake slate on the left, or <b>Load example</b> to see a ' +
-    'scored six-profile slate — including one candidate the req already rejected and one held ' +
-    "back for thin evidence.</p>";
+  var EMPTY = '<p class="empty">Paste a job description on the left and hit <b>Source &amp; score</b>, ' +
+    'or <b>Load example</b> to see a scored six-profile slate — including one candidate the req ' +
+    "already rejected and one held back for thin evidence.</p>";
 
   function setStatus(text, cls) {
     $status.textContent = text;
@@ -1422,7 +1412,7 @@
 
   /* ---------- tabs ---------- */
 
-  var TABS = ["jd", "json", "history"];
+  var TABS = ["jd", "history"];
 
   function selectTab(which) {
     TABS.forEach(function (name) {
