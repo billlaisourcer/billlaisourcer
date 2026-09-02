@@ -27,6 +27,15 @@ import {
 /** Sourcing runs a live tool loop; it needs far longer than the 10s default. */
 export const maxDuration = 300;
 
+// Sonnet 5 rather than Opus 5: 2.5x cheaper ($2/$10 per MTok vs $5/$25) and
+// faster, which matters because the biggest slice of wall clock is generating
+// the final slate one token at a time, and a run that passes 300s is a 504
+// that bills for nothing. Overridable without a deploy — set INTAKE_MODEL in
+// the environment. Note the cache is model-scoped, so changing this starts the
+// cache cold once; and any model here must clear its own cacheable minimum
+// (Sonnet 5 is 1024 tokens; the system prompt is ~1500).
+const MODEL = process.env.INTAKE_MODEL || "claude-sonnet-5";
+
 const MCP_SERVER_URL = "https://api.supercarl.ai/mcp";
 const MCP_NAME = "supercarl";
 
@@ -264,7 +273,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const stream = client.beta.messages.stream({
-      model: "claude-opus-5",
+      model: MODEL,
       max_tokens: 16000,
       // The whole job must finish inside the platform's function duration cap.
       // Lower effort means fewer, more consolidated tool calls — the single
@@ -310,15 +319,26 @@ export async function POST(request: Request): Promise<Response> {
       cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
     };
-    // Claude Opus 5: $5 / MTok in, $25 / MTok out. Cache reads bill at ~0.1x
-    // input, writes at ~1.25x.
+    // Per-MTok list prices. Cache reads bill at ~0.1x input, writes at ~1.25x.
+    // An unknown model falls back to Sonnet 5's rates and the reported cost is
+    // an estimate — better than dropping the figure entirely, but do not treat
+    // it as authoritative for a model that is not in this table.
+    const RATES: Record<string, { in: number; out: number }> = {
+      "claude-opus-5": { in: 5, out: 25 },
+      "claude-sonnet-5": { in: 2, out: 10 },
+      "claude-haiku-4-5": { in: 1, out: 5 },
+    };
+    const rate = RATES[MODEL] ?? { in: 2, out: 10 };
     const cost =
-      (usage.input_tokens * 5 +
-        usage.cache_read_input_tokens * 0.5 +
-        usage.cache_creation_input_tokens * 6.25 +
-        usage.output_tokens * 25) /
+      (usage.input_tokens * rate.in +
+        usage.cache_read_input_tokens * rate.in * 0.1 +
+        usage.cache_creation_input_tokens * rate.in * 1.25 +
+        usage.output_tokens * rate.out) /
       1_000_000;
-    console.log("intake usage", JSON.stringify({ ...usage, cost_usd: cost }));
+    console.log(
+      "intake usage",
+      JSON.stringify({ model: MODEL, ...usage, cost_usd: cost }),
+    );
 
     if (message.stop_reason === "refusal") {
       return json(
