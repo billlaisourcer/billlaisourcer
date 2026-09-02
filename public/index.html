@@ -634,6 +634,7 @@
     </a>
     <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
     <span class="sep" aria-hidden="true"></span>
+    <button id="btn-new" type="button">New search</button>
     <button id="btn-example" type="button">Load example</button>
     <button id="btn-copy" class="primary" type="button">Copy markdown</button>
   </div>
@@ -650,6 +651,8 @@
     </div>
 
     <div class="mode" id="mode-jd">
+      <input class="field" id="jd-title"
+        placeholder="Role title (optional — overrides whatever the JD calls it)">
       <textarea id="jd" spellcheck="false" aria-label="Job description"
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
@@ -1564,6 +1567,7 @@
   /* ---------- source & score ---------- */
 
   var $jd = document.getElementById("jd");
+  var $jdTitle = document.getElementById("jd-title");
   var $jdLocation = document.getElementById("jd-location");
   var $jdNotes = document.getElementById("jd-notes");
   var $runBtn = document.getElementById("btn-run");
@@ -1579,6 +1583,9 @@
   }
 
   $jd.addEventListener("input", function () { store("calibration-scorecard:jd", $jd.value); });
+  $jdTitle.addEventListener("input", function () {
+    store("calibration-scorecard:title", $jdTitle.value);
+  });
 
   /* ---------- recruiter-stated requirements ---------- */
 
@@ -1670,6 +1677,7 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           jd: jd,
+          title: $jdTitle.value.trim(),
           location: $jdLocation.value.trim(),
           notes: $jdNotes.value.trim(),
           must_haves: reqLines($reqMust).slice(0, MUST_CAP),
@@ -1750,6 +1758,40 @@
     runSearch(fb);
   });
 
+  /* ---------- new search ---------- */
+
+  // Clears the whole input side and the rendered slate. Deliberately does NOT
+  // touch History — a finished run is exactly what you want to keep when you
+  // start the next one.
+  document.getElementById("btn-new").addEventListener("click", function () {
+    if ($jd.value.trim() &&
+        !confirm("Clear the job description, title, filters and the current slate?\n\n" +
+                 "Saved runs in History are kept.")) {
+      return;
+    }
+
+    [$jd, $jdTitle, $jdLocation, $jdNotes, $reqMust, $reqNice, $recalText]
+      .forEach(function (el) { el.value = ""; });
+
+    ["jd", "title", "must", "nice", "input"].forEach(function (k) {
+      store("calibration-scorecard:" + k, "");
+    });
+
+    $in.value = "";
+    run();                 // renders the empty state
+
+    $recal.hidden = true;
+    lastSlate = [];
+    histLoadedId = null;
+    $reqs.open = false;
+    syncReqs();
+
+    $err.hidden = true;
+    selectTab("jd");
+    setStatus("ready");
+    $jdTitle.focus();
+  });
+
   /* ---------- restore ---------- */
 
   var savedJd = recall("calibration-scorecard:jd");
@@ -1762,10 +1804,14 @@
   // user sees their list without a first-timer losing the run button off-screen.
   if ($reqMust.value.trim() || $reqNice.value.trim()) $reqs.open = true;
 
+  $jdTitle.value = recall("calibration-scorecard:title") || "";
+
   var saved = recall("calibration-scorecard:input");
-  $in.value = saved || EXAMPLE;
+  var firstVisit = saved === null;
+  $in.value = firstVisit ? EXAMPLE : saved;
   run();
-  setStatus(savedJd ? "ready" : "showing example");
+  if (firstVisit) setStatus("showing example");
+  else if (savedJd) setStatus("ready");
 })();
 </script>
 </body>

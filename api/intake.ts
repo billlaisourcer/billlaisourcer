@@ -57,7 +57,8 @@ that", and that reaction is worth more than weeks of sourcing against a misread 
 
 ## Method
 
-1. Dissect the JD. Separate the real title from the posted one. Cut the wish-list down to
+1. Dissect the JD. Separate the real title from the posted one — unless the recruiter
+   stated a title, in which case that is the real title and there is nothing to infer. Cut the wish-list down to
    3-6 genuine must-haves — the things a candidate truly cannot lack. Job descriptions
    over-list; the must-have list is not the wish list. Getting this wrong miscalibrates
    every profile that follows.
@@ -178,6 +179,7 @@ export async function POST(request: Request): Promise<Response> {
 
   let body: {
     jd?: unknown;
+    title?: unknown;
     location?: unknown;
     notes?: unknown;
     count?: unknown;
@@ -216,6 +218,9 @@ export async function POST(request: Request): Promise<Response> {
           .slice(0, cap)
       : [];
 
+  const title =
+    typeof body.title === "string" ? body.title.trim().slice(0, 200) : "";
+
   const mustHaves = lines(body.must_haves, 6);
   const niceToHaves = lines(body.nice_to_haves, 8);
 
@@ -224,7 +229,15 @@ export async function POST(request: Request): Promise<Response> {
     ? body.previous.filter((x): x is string => typeof x === "string").slice(0, 12)
     : [];
 
-  const userParts = [`Job description:\n\n${jd}`];
+  const userParts: string[] = [];
+  if (title) {
+    userParts.push(
+      `Role title, stated by the recruiter: ${title}\n\nThis IS the real title. ` +
+        `Use it verbatim as req.title and search against it. Do not re-derive a title ` +
+        `from the JD, and where the posted title disagrees with this one, this one wins.\n\n`,
+    );
+  }
+  userParts.push(`Job description:\n\n${jd}`);
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
 
