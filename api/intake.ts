@@ -76,6 +76,15 @@ ${RUBRIC_TABLE}
 - **Never invent a person, employer, tenure, or link.** Every candidate must come from an
   actual tool result. A slate with fewer real people beats one padded with plausible ones.
 
+## Recruiter-specified requirements
+
+A request may arrive with an explicit must-have or nice-to-have list. When it does, that
+list replaces your own reading of the JD — the recruiter has spoken to the client and you
+have not. Copy it into req.must_haves verbatim and score must_have_coverage against
+exactly those items, no more and no fewer. Do not silently add a requirement you think is
+implied, and do not drop one you judge unrealistic; if a stated must-have looks like it
+will empty the market, still score against it and say so in open_questions.
+
 ## Recalibration passes
 
 A request may arrive with recruiter feedback on a previous slate. That feedback is the
@@ -165,6 +174,8 @@ export async function POST(request: Request): Promise<Response> {
     count?: unknown;
     feedback?: unknown;
     previous?: unknown;
+    must_haves?: unknown;
+    nice_to_haves?: unknown;
   };
   try {
     body = await request.json();
@@ -186,6 +197,19 @@ export async function POST(request: Request): Promise<Response> {
   const location = typeof body.location === "string" ? body.location.trim() : "";
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
+  // The intake schema caps must_haves at 6, so trim here rather than letting the
+  // model produce a list that fails validation after a full sourcing run.
+  const lines = (v: unknown, cap: number): string[] =>
+    Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .slice(0, cap)
+      : [];
+
+  const mustHaves = lines(body.must_haves, 6);
+  const niceToHaves = lines(body.nice_to_haves, 8);
+
   const feedback = typeof body.feedback === "string" ? body.feedback.trim() : "";
   const previous = Array.isArray(body.previous)
     ? body.previous.filter((x): x is string => typeof x === "string").slice(0, 12)
@@ -194,6 +218,26 @@ export async function POST(request: Request): Promise<Response> {
   const userParts = [`Job description:\n\n${jd}`];
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
+
+  if (mustHaves.length || niceToHaves.length) {
+    const parts: string[] = ["\n\n--- RECRUITER-SPECIFIED REQUIREMENTS ---"];
+    if (mustHaves.length) {
+      parts.push(
+        `\nMust-haves. Use these VERBATIM as req.must_haves and score ` +
+          `must_have_coverage against exactly this list. Do not re-cut them from the JD, ` +
+          `do not reword them, do not add to them:\n` +
+          mustHaves.map((m) => `  - ${m}`).join("\n"),
+      );
+    }
+    if (niceToHaves.length) {
+      parts.push(
+        `\nNice-to-haves. Use these verbatim as req.nice_to_haves. They inform ` +
+          `skill_depth and domain_pedigree but never must_have_coverage:\n` +
+          niceToHaves.map((n) => `  - ${n}`).join("\n"),
+      );
+    }
+    userParts.push(parts.join("\n"));
+  }
 
   if (feedback) {
     userParts.push(
@@ -226,7 +270,21 @@ export async function POST(request: Request): Promise<Response> {
       // Lower effort means fewer, more consolidated tool calls — the single
       // biggest lever on wall-clock here.
       output_config: { effort: "medium" },
-      system: SYSTEM,
+      // One explicit breakpoint at the end of the static prefix. Tools render
+      // before system, so this caches the toolset and the system prompt together.
+      //
+      // The bigger win is indirect: once a request uses caching at all, the
+      // server inserts its own cache writes after each tool result inside the
+      // MCP loop. Without this marker every internal iteration re-reads the
+      // whole accumulated search history at full price — which is what made a
+      // single run cost as much as it did.
+      //
+      // Deliberately NOT using top-level automatic caching: it would place the
+      // breakpoint after the JD, which is unique per run, so every request
+      // would pay the write premium on bytes nothing ever reads back.
+      system: [
+        { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
+      ],
       messages: [{ role: "user", content: userParts.join("") }],
       mcp_servers: [
         {
@@ -241,6 +299,26 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     const message = await stream.finalMessage();
+
+    // Cache health is invisible unless you look: the request still succeeds
+    // when caching silently breaks, the bill is just higher. cache_read should
+    // be non-zero on any run past the first within the TTL.
+    const u = message.usage;
+    const usage = {
+      input_tokens: u.input_tokens ?? 0,
+      output_tokens: u.output_tokens ?? 0,
+      cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
+      cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
+    };
+    // Claude Opus 5: $5 / MTok in, $25 / MTok out. Cache reads bill at ~0.1x
+    // input, writes at ~1.25x.
+    const cost =
+      (usage.input_tokens * 5 +
+        usage.cache_read_input_tokens * 0.5 +
+        usage.cache_creation_input_tokens * 6.25 +
+        usage.output_tokens * 25) /
+      1_000_000;
+    console.log("intake usage", JSON.stringify({ ...usage, cost_usd: cost }));
 
     if (message.stop_reason === "refusal") {
       return json(
@@ -319,10 +397,8 @@ export async function POST(request: Request): Promise<Response> {
           searches,
           candidates: result.data.candidates.length,
           stop_reason: message.stop_reason,
-          usage: {
-            input_tokens: message.usage.input_tokens,
-            output_tokens: message.usage.output_tokens,
-          },
+          usage,
+          cost_usd: Math.round(cost * 10000) / 10000,
         },
       },
       200,
