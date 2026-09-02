@@ -287,7 +287,13 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const stream = client.beta.messages.stream({
       model: MODEL,
-      max_tokens: 16000,
+      // 16000 was not enough. Sonnet spends output tokens on thinking before it
+      // writes anything, and thinking counts against this ceiling, so the slate
+      // JSON was being truncated mid-object — two live runs reported 17.1k and
+      // 17.4k output tokens and both failed schema validation. This is a ceiling,
+      // not a target: the model still emits only what it needs, and the request
+      // streams, so a large value costs nothing until it is used.
+      max_tokens: 32000,
       // The whole job must finish inside the platform's function duration cap.
       // Lower effort means fewer, more consolidated tool calls — the single
       // biggest lever on wall-clock here.
@@ -367,6 +373,21 @@ export async function POST(request: Request): Promise<Response> {
 
     const searches = message.content.filter((b) => b.type === "mcp_tool_use").length;
 
+    // Truncation at the ceiling produces half a JSON object, which then fails
+    // schema validation and reads like a prompt problem. It is not — say so.
+    if (message.stop_reason === "max_tokens") {
+      return json(
+        {
+          error:
+            "The slate was cut off — the model hit its output limit before " +
+            "finishing. Try a smaller slate size, or raise max_tokens.",
+          searches,
+          output_tokens: usage.output_tokens,
+        },
+        502,
+      );
+    }
+
     // When a slate comes back empty the useful question is what the search tools
     // said — credits exhausted, zero matches, or an error. Without this the
     // failure is indistinguishable from a bad prompt.
@@ -401,8 +422,13 @@ export async function POST(request: Request): Promise<Response> {
     } catch (err) {
       return json(
         {
-          error: "Could not read a slate out of the model response.",
+          error:
+            text.length && !text.trimEnd().endsWith("}")
+              ? "The slate was cut off mid-way — the model ran out of output " +
+                "room before finishing the JSON. Try a smaller slate size."
+              : "Could not read a slate out of the model response.",
           detail: err instanceof Error ? err.message : String(err),
+          output_tokens: usage.output_tokens,
           searches,
         },
         502,
