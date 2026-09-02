@@ -240,8 +240,14 @@
     min-height: 0;
   }
   .pane__head {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 6px 10px;
+    /* Three tabs plus the status chip overflow a narrow pane. Wrapping drops
+       the chip to its own line instead of clipping it. */
+    flex-wrap: wrap;
   }
+  .pane__head .chip { flex: 0 0 auto; }
+  .pane__head .tabs { flex: 1 1 auto; min-width: 0; }
   .pane__head h2 {
     margin: 0; font-size: 11px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.09em;
@@ -267,7 +273,7 @@
   .tabs { display: flex; gap: 2px; }
   .tab {
     font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 5px 10px; border: 1px solid transparent; border-radius: var(--r);
+    padding: 5px 8px; border: 1px solid transparent; border-radius: var(--r);
     background: none; color: var(--ink-faint); cursor: pointer; white-space: nowrap;
   }
   .tab.is-on { background: var(--surface); border-color: var(--hairline-hi); color: var(--ink); }
@@ -353,6 +359,40 @@
   }
   .reqs__cap { margin: 0; font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
   .reqs__cap.is-over { color: var(--score); }
+
+  /* History list. Entries are stored locally in this browser only. */
+  .hist { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .hist__empty {
+    margin: 0; font-family: var(--f-prose); font-size: 13px; line-height: 1.55;
+    color: var(--ink-faint);
+  }
+  .hist__item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 9px 10px; text-align: left; width: 100%;
+    background: var(--surface); border: 1px solid var(--hairline-hi);
+    border-radius: var(--r); cursor: pointer;
+  }
+  .hist__item:hover { border-color: var(--accent); }
+  .hist__item.is-on { border-color: var(--accent); background: var(--accent-soft); }
+  .hist__main { flex: 1 1 auto; min-width: 0; }
+  .hist__title {
+    font-family: var(--f-chrome); font-size: 13px; font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist__meta {
+    margin-top: 2px; font-family: var(--f-data); font-size: 11px; color: var(--ink-faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist__del {
+    flex: 0 0 auto; padding: 2px 7px; font-size: 14px; line-height: 1.2;
+    background: none; border: 1px solid transparent; border-radius: var(--r);
+    color: var(--ink-faint); cursor: pointer;
+  }
+  .hist__del:hover { color: var(--crit); border-color: var(--hairline-hi); }
+  .hist__foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding-top: 2px;
+  }
 
   .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
   .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
@@ -605,6 +645,7 @@
       <div class="tabs" role="tablist">
         <button class="tab is-on" id="tab-jd" role="tab" aria-selected="true" type="button">Job description</button>
         <button class="tab" id="tab-json" role="tab" aria-selected="false" type="button">Intake JSON</button>
+        <button class="tab" id="tab-history" role="tab" aria-selected="false" type="button">History</button>
       </div>
       <span class="chip" id="status">ready</span>
     </div>
@@ -651,6 +692,14 @@
           already showed you.</p>
         <button class="wide" id="btn-recal" type="button">Re-run with this feedback</button>
       </div>
+    </div>
+
+    <div class="mode" id="mode-history" hidden>
+      <div class="hist__foot">
+        <p class="hint" id="hist-note"></p>
+        <button id="btn-hist-clear" type="button" hidden>Clear all</button>
+      </div>
+      <div class="hist" id="hist-list"></div>
     </div>
 
     <div class="mode" id="mode-json" hidden>
@@ -1373,22 +1422,154 @@
 
   /* ---------- tabs ---------- */
 
-  var $tabJd = document.getElementById("tab-jd");
-  var $tabJson = document.getElementById("tab-json");
-  var $modeJd = document.getElementById("mode-jd");
-  var $modeJson = document.getElementById("mode-json");
+  var TABS = ["jd", "json", "history"];
 
   function selectTab(which) {
-    var jd = which === "jd";
-    $modeJd.hidden = !jd;
-    $modeJson.hidden = jd;
-    $tabJd.classList.toggle("is-on", jd);
-    $tabJson.classList.toggle("is-on", !jd);
-    $tabJd.setAttribute("aria-selected", String(jd));
-    $tabJson.setAttribute("aria-selected", String(!jd));
+    TABS.forEach(function (name) {
+      var on = name === which;
+      var tab = document.getElementById("tab-" + name);
+      document.getElementById("mode-" + name).hidden = !on;
+      tab.classList.toggle("is-on", on);
+      tab.setAttribute("aria-selected", String(on));
+    });
+    if (which === "history") renderHistory();
   }
-  $tabJd.addEventListener("click", function () { selectTab("jd"); });
-  $tabJson.addEventListener("click", function () { selectTab("json"); });
+  TABS.forEach(function (name) {
+    document.getElementById("tab-" + name)
+      .addEventListener("click", function () { selectTab(name); });
+  });
+
+  /* ---------- history ----------
+     Saved slates live in this browser's localStorage. Storing them costs no
+     tokens and no credits — only an API call does — so the full result is kept
+     rather than just the inputs, and reloading a past run is free and instant
+     instead of a fresh $0.40+ search. */
+
+  var HIST_KEY = "calibration-scorecard:history";
+  var HIST_MAX = 25;
+
+  var $histList = document.getElementById("hist-list");
+  var $histNote = document.getElementById("hist-note");
+  var $histClear = document.getElementById("btn-hist-clear");
+  var histLoadedId = null;
+
+  function historyRead() {
+    try {
+      var raw = localStorage.getItem(HIST_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return []; // private mode, or a corrupted entry — an unusable history is not an error
+    }
+  }
+
+  function historyWrite(entries) {
+    // Quota is finite and a slate is not small. Drop oldest until it fits
+    // rather than letting the write throw and lose the run entirely.
+    var list = entries.slice(0, HIST_MAX);
+    while (list.length) {
+      try {
+        localStorage.setItem(HIST_KEY, JSON.stringify(list));
+        return list;
+      } catch (e) {
+        list = list.slice(0, list.length - 1);
+      }
+    }
+    try { localStorage.removeItem(HIST_KEY); } catch (e) { /* nothing to do */ }
+    return [];
+  }
+
+  function historySave(intake, meta) {
+    var req = (intake && intake.req) || {};
+    var entry = {
+      id: String(Date.now()) + "-" + Math.random().toString(36).slice(2, 7),
+      at: new Date().toISOString(),
+      title: req.title || "Untitled role",
+      company: req.company || "",
+      candidates: (meta && meta.candidates) || (intake.candidates || []).length,
+      cost: meta && typeof meta.cost_usd === "number" ? meta.cost_usd : null,
+      model: (meta && meta.usage && meta.usage.model) || (meta && meta.model) || "",
+      intake: intake
+    };
+    var list = historyWrite([entry].concat(historyRead()));
+    histLoadedId = entry.id;
+    return list;
+  }
+
+  function histWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+      " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function renderHistory() {
+    var list = historyRead();
+    $histClear.hidden = list.length === 0;
+
+    if (!list.length) {
+      $histList.innerHTML = "";
+      $histNote.textContent = "No saved runs yet. Every completed slate is saved here " +
+        "automatically, in this browser only.";
+      return;
+    }
+
+    $histNote.textContent = list.length + " saved " + (list.length === 1 ? "run" : "runs") +
+      " — this browser only. Newest first, oldest dropped past " + HIST_MAX + ".";
+
+    $histList.innerHTML = list.map(function (e) {
+      var bits = [histWhen(e.at), e.candidates + " profiles"];
+      if (typeof e.cost === "number") bits.push("$" + e.cost.toFixed(2));
+      var where = e.company ? " @ " + e.company : "";
+      return '<div class="hist__item' + (e.id === histLoadedId ? " is-on" : "") +
+        '" data-id="' + esc(e.id) + '" role="button" tabindex="0">' +
+          '<div class="hist__main">' +
+            '<div class="hist__title">' + esc(e.title + where) + "</div>" +
+            '<div class="hist__meta">' + esc(bits.join("  \u00B7  ")) + "</div>" +
+          "</div>" +
+          '<button class="hist__del" data-del="' + esc(e.id) + '" ' +
+            'title="Delete this run" aria-label="Delete this run">&times;</button>' +
+        "</div>";
+    }).join("");
+  }
+
+  function historyLoad(id) {
+    var entry = historyRead().filter(function (e) { return e.id === id; })[0];
+    if (!entry) return;
+    histLoadedId = id;
+    $in.value = JSON.stringify(entry.intake, null, 2);
+    run(); // re-scores locally — no API call, no tokens, no credits
+    renderHistory();
+  }
+
+  $histList.addEventListener("click", function (ev) {
+    var del = ev.target.closest("[data-del]");
+    if (del) {
+      ev.stopPropagation();
+      var delId = del.getAttribute("data-del");
+      historyWrite(historyRead().filter(function (e) { return e.id !== delId; }));
+      if (histLoadedId === delId) histLoadedId = null;
+      renderHistory();
+      return;
+    }
+    var item = ev.target.closest(".hist__item");
+    if (item) historyLoad(item.getAttribute("data-id"));
+  });
+
+  $histList.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var item = ev.target.closest(".hist__item");
+    if (!item) return;
+    ev.preventDefault();
+    historyLoad(item.getAttribute("data-id"));
+  });
+
+  $histClear.addEventListener("click", function () {
+    if (!confirm("Delete all saved runs from this browser? This cannot be undone.")) return;
+    historyWrite([]);
+    histLoadedId = null;
+    renderHistory();
+  });
 
   /* ---------- source & score ---------- */
 
@@ -1544,6 +1725,11 @@
       $recalText.value = "";
 
       var meta = payload.meta || {};
+
+      // Saved after the slate renders, so a storage failure can never cost the
+      // user a run they already paid for.
+      historySave(payload.intake, meta);
+
       var elapsed = Math.round((Date.now() - started) / 1000);
       clearInterval(ticker);
       $runBtn.disabled = false;

@@ -414,6 +414,7 @@ export async function POST(request: Request): Promise<Response> {
       {
         intake: result.data,
         meta: {
+          model: MODEL,
           searches,
           candidates: result.data.candidates.length,
           stop_reason: message.stop_reason,
