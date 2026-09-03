@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Turn screening-call notes and a resume into a recruiter submission — reason for leaving, background, AI enablement, compensation and fit, with the gaps called out.">
+<title>Candidate Submission Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<style>
+    :root { color-scheme: light dark; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; }
+    img { max-width: 100%; }
+    [hidden] { display: none !important; }
+
+  /* Palette shared with index.html. Change one, change both. */
+  :root {
+    --ground:      #F7F9FD;
+    --surface:     #FFFFFF;
+    --surface-sunk:#EEF4FF;
+    --ink:         #040D1E;
+    --ink-muted:   #5D6E8E;
+    --ink-faint:   #7A8BAA;
+    --hairline:    #DFE7F4;
+    --hairline-hi: #C4D2EA;
+    --accent:      #2F7FFF;
+    --accent-soft: #EEF4FF;
+    --score:       #A66A05;
+    --score-bar:   #D08A10;
+    --good:        #1C7A55;
+    --good-soft:   #E1F2EB;
+    --warn:        #8A5E10;
+    --warn-soft:   #F8EED9;
+    --crit:        #C0392B;
+    --crit-soft:   #FBE6E3;
+    --focus:       #2F7FFF;
+
+    --f-display: "Playfair Display", Georgia, "Times New Roman", serif;
+    --f-chrome:  "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-prose:   "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-data:    "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --r: 4px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #060C18;
+      --surface:     #0D1526;
+      --surface-sunk:#0A1120;
+      --ink:         #E8EEF9;
+      --ink-muted:   #9AAAC6;
+      --ink-faint:   #6D7C99;
+      --hairline:    #1C2740;
+      --hairline-hi: #2C3A58;
+      --accent:      #61A4FF;
+      --accent-soft: #14203A;
+      --score:       #E8AE4A;
+      --score-bar:   #D08A10;
+      --good:        #5FC49A;
+      --good-soft:   #0F2620;
+      --warn:        #DDA84F;
+      --warn-soft:   #241E10;
+      --crit:        #F08878;
+      --crit-soft:   #2B1512;
+      --focus:       #61A4FF;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #060C18;
+    --surface:     #0D1526;
+    --surface-sunk:#0A1120;
+    --ink:         #E8EEF9;
+    --ink-muted:   #9AAAC6;
+    --ink-faint:   #6D7C99;
+    --hairline:    #1C2740;
+    --hairline-hi: #2C3A58;
+    --accent:      #61A4FF;
+    --accent-soft: #14203A;
+    --score:       #E8AE4A;
+    --score-bar:   #D08A10;
+    --good:        #5FC49A;
+    --good-soft:   #0F2620;
+    --warn:        #DDA84F;
+    --warn-soft:   #241E10;
+    --crit:        #F08878;
+    --crit-soft:   #2B1512;
+    --focus:       #61A4FF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-chrome);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---------- brand ---------- */
+  .brand { display: flex; align-items: flex-start; gap: 13px; min-width: 0; }
+  .brand__mark { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 7px; display: block; }
+  .brand__name {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 2px;
+  }
+
+  /* ---------- access gate ---------- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ground); padding: 24px;
+  }
+  .gate[hidden] { display: none; }
+  .gate__card {
+    width: 100%; max-width: 340px;
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 26px 24px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .gate__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
+  .gate__title { margin: 0; font-family: var(--f-display); font-size: 17px;
+    font-weight: 700; letter-spacing: -0.01em; }
+  .gate__sub { margin: 0; font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted); }
+  .gate__err { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--crit); }
+  .gate__err[hidden] { display: none; }
+
+  .masthead {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: flex-end; justify-content: space-between;
+    padding: 20px clamp(16px, 3vw, 32px) 16px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .masthead h1 {
+    margin: 0; font-family: var(--f-display);
+    font-size: 21px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 3px 0 0; font-family: var(--f-prose);
+    font-size: 14px; color: var(--ink-muted); max-width: 62ch;
+  }
+  .masthead__actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  button {
+    font-family: var(--f-chrome);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+    padding: 8px 14px;
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); color: var(--ink); cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  :root[data-theme="dark"] button.primary { color: #040D1E; }
+  button.primary:hover { filter: brightness(1.08); color: var(--surface); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.primary { color: #040D1E; }
+    :root:not([data-theme="light"]) button.primary:hover { color: #040D1E; }
+  }
+  a.btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--f-chrome); font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); color: var(--ink-muted); text-decoration: none;
+  }
+  a.btn:hover { border-color: var(--accent); color: var(--accent); }
+  a.btn .arrow { font-size: 11px; opacity: .8; }
+  button.quiet { font-weight: 500; color: var(--ink-muted); }
+  button.quiet:hover { color: var(--accent); }
+  button[disabled] { opacity: .55; cursor: progress; }
+  .sep { width: 1px; align-self: stretch; margin: 2px 3px; background: var(--hairline); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button, a.btn { transition: border-color .12s ease, color .12s ease; }
+  }
+
+  /* ---------- shell ---------- */
+  .shell { display: grid; grid-template-columns: 1fr; gap: 0; align-items: start; }
+  @media (min-width: 980px) {
+    .shell { grid-template-columns: minmax(340px, 400px) 1fr; }
+    .pane--in {
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      border-right: 1px solid var(--hairline); border-bottom: none;
+    }
+  }
+  .shell > * { min-width: 0; }
+
+  .pane--in {
+    display: flex; flex-direction: column; min-width: 0;
+    background: var(--surface-sunk);
+    border-bottom: 1px solid var(--hairline);
+    padding: 16px clamp(14px, 2vw, 20px);
+    gap: 10px; min-height: 0;
+  }
+  .pane__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px 10px;
+    flex-wrap: wrap;
+  }
+  .pane__head .tabs { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 10px; border: 1px solid transparent; border-radius: var(--r);
+    background: none; color: var(--ink-faint); cursor: pointer; white-space: nowrap;
+  }
+  .tab.is-on { background: var(--surface); border-color: var(--hairline-hi); color: var(--ink); }
+  .tab:hover { color: var(--accent); }
+
+  .mode { display: flex; flex-direction: column; gap: 9px; flex: 1 1 auto; min-height: 0; }
+  .mode[hidden] { display: none; }
+
+  textarea, .field {
+    width: 100%; min-width: 0;
+    font-family: var(--f-chrome); font-size: 13px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    padding: 8px 10px;
+  }
+  textarea { resize: vertical; line-height: 1.5; padding: 10px; }
+  .field::placeholder, textarea::placeholder { color: var(--ink-faint); }
+  /* Must not grow. This pane carries a drop zone, two collapsibles and the run
+     button beneath the notes; letting the textarea absorb the spare height
+     pushes the button past the fold on a tall window. */
+  #notes { min-height: 170px; flex: 0 1 auto; }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1 1 0; min-width: 0; }
+
+  .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted);
+  }
+
+  button.wide { width: 100%; padding: 10px; font-size: 13.5px; }
+
+  .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
+  .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
+
+  .err {
+    font-family: var(--f-data); font-size: 12px;
+    color: var(--crit); background: var(--crit-soft);
+    border: 1px solid var(--crit); border-radius: var(--r);
+    padding: 9px 11px; white-space: pre-wrap; word-break: break-word;
+  }
+
+  /* ---------- collapsible input groups ---------- */
+  .grp { border: 1px solid var(--hairline-hi); border-radius: var(--r); background: var(--surface); }
+  .grp > summary {
+    list-style: none; cursor: pointer; padding: 8px 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp > summary::before {
+    content: "\25B8"; font-size: 10px; color: var(--ink-faint); transition: transform .12s ease;
+  }
+  .grp[open] > summary::before { transform: rotate(90deg); }
+  .grp > summary:hover { color: var(--accent); }
+  .grp__tag {
+    margin-left: auto; font-family: var(--f-data); font-size: 11px;
+    letter-spacing: 0; text-transform: none; color: var(--accent);
+  }
+  .grp__tag:empty { display: none; }
+  .grp__body {
+    padding: 10px; display: flex; flex-direction: column; gap: 7px;
+    border-top: 1px solid var(--hairline);
+  }
+  .grp__body textarea { min-height: 90px; }
+
+  /* ---------- resume dropzone ---------- */
+  .drop {
+    border: 1.5px dashed var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface);
+    padding: 16px 14px; text-align: center; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .drop:hover, .drop:focus-visible { border-color: var(--accent); }
+  .drop.is-over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop__t { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .drop.is-over .drop__t, .drop:hover .drop__t { color: var(--accent); }
+  .drop__s { font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
+
+  .file {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 11px; border: 1px solid var(--good);
+    background: var(--good-soft); border-radius: var(--r);
+  }
+  .file__n {
+    flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file__m { font-family: var(--f-data); font-size: 11px; color: var(--ink-muted); flex: 0 0 auto; }
+  .file__x {
+    flex: 0 0 auto; padding: 3px 8px; font-size: 11px;
+    background: transparent; border-color: transparent; color: var(--ink-muted);
+  }
+  .file__x:hover { color: var(--crit); border-color: var(--crit); }
+
+  /* ---------- output ---------- */
+  .pane--out { padding: clamp(18px, 3vw, 34px); min-width: 0; }
+  .doc { max-width: 940px; margin: 0 auto; min-width: 0; }
+
+  .empty {
+    color: var(--ink-faint); font-family: var(--f-prose); font-size: 15px;
+    padding: 40px 0; max-width: 58ch;
+  }
+  .empty b { color: var(--ink); }
+
+  .subhead { margin-bottom: 22px; }
+  .subhead .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .subhead h2 {
+    margin: 5px 0 6px; font-family: var(--f-display);
+    font-size: clamp(24px, 3.2vw, 33px); font-weight: 700;
+    letter-spacing: -0.02em; line-height: 1.14; text-wrap: balance;
+  }
+  .subhead .role { font-family: var(--f-prose); font-size: 15px; color: var(--ink-muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 11px; }
+
+  .chip {
+    display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 2.5px 7px; border-radius: 2px; white-space: nowrap;
+    border: 1px solid var(--hairline-hi); color: var(--ink-muted);
+  }
+  .chip.ok  { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+  .chip.md  { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .chip.bad { background: var(--crit-soft); color: var(--crit); border-color: var(--crit); }
+  .chip.acc { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  h3.sec {
+    margin: 30px 0 12px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    padding-bottom: 7px; border-bottom: 1px solid var(--hairline);
+  }
+  h3.sec .n { color: var(--ink-faint); font-family: var(--f-data); font-weight: 500; }
+
+  .lead {
+    font-family: var(--f-prose); font-size: 16px; line-height: 1.6; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0; padding: 15px 18px;
+  }
+
+  /* the gaps checklist — the thing that makes this more than a formatter */
+  .gaps { border: 1px solid var(--warn); background: var(--warn-soft);
+    border-radius: var(--r); padding: 14px 18px; }
+  .gaps.none { border-color: var(--good); background: var(--good-soft); }
+  .gaps h4 {
+    margin: 0 0 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--warn);
+  }
+  .gaps.none h4 { color: var(--good); }
+  .gaps ul { margin: 0; padding-left: 17px; font-family: var(--f-prose);
+    font-size: 13.5px; color: var(--ink); columns: 2; column-gap: 26px; }
+  .gaps li { margin-bottom: 4px; break-inside: avoid; }
+  @media (max-width: 640px) { .gaps ul { columns: 1; } }
+  .gaps p { margin: 0; font-family: var(--f-prose); font-size: 13.5px; color: var(--ink); }
+
+  /* field grid */
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px;
+    background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r);
+    overflow: hidden; }
+  .fact { background: var(--surface); padding: 12px 14px; }
+  .fact__k {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fact__v { font-family: var(--f-prose); font-size: 14px; line-height: 1.45; color: var(--ink); }
+  .fact__v.miss { color: var(--ink-faint); font-style: italic; }
+  .fact__q {
+    margin-top: 5px; font-family: var(--f-prose); font-size: 12px; line-height: 1.45;
+    color: var(--ink-muted); border-left: 2px solid var(--hairline-hi); padding-left: 8px;
+  }
+  .src {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 2px; border: 1px solid var(--hairline-hi);
+    color: var(--ink-faint); white-space: nowrap;
+  }
+  .src.call { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .src.resume { color: var(--ink-muted); }
+  .src.both { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .src.inferred { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+
+  .dots { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: -1px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hairline-hi); }
+  .dots i.on { background: var(--score-bar); }
+
+  .ai { background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--r); padding: 15px 18px; }
+  .ai__top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ai__r { font-family: var(--f-data); font-variant-numeric: tabular-nums;
+    font-size: 22px; font-weight: 600; color: var(--score); }
+  .ai__s { font-family: var(--f-prose); font-size: 14px; line-height: 1.55;
+    color: var(--ink); margin: 9px 0 0; }
+  ul.ev { margin: 9px 0 0; padding-left: 17px; font-family: var(--f-prose);
+    font-size: 13.5px; color: var(--ink-muted); }
+  ul.ev li { margin-bottom: 4px; }
+
+  table.mh { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.mh th {
+    text-align: left; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 10px 7px 0; border-bottom: 1px solid var(--hairline-hi);
+  }
+  table.mh td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--hairline);
+    vertical-align: top; }
+  table.mh td.rq { font-weight: 600; }
+  table.mh td.vd { width: 1%; white-space: nowrap; }
+  table.mh td.ev { font-family: var(--f-prose); color: var(--ink-muted); line-height: 1.45; }
+
+  ul.plain { margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 14px; }
+  ul.plain li { margin-bottom: 5px; }
+  ul.plain.warn li { color: var(--ink); }
+
+  .exports { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate__card">
+    <div class="gate__brand">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+        <text x="19" y="22" text-anchor="middle"
+          font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+      </svg>
+      <div>
+        <div class="brand__name">SD Talent</div>
+        <h2 class="gate__title">Candidate Submission Builder</h2>
+      </div>
+    </div>
+    <p class="gate__sub">Enter the access password to continue.</p>
+    <input class="field" id="gate-pw" type="password" autocomplete="current-password"
+      placeholder="Password" aria-label="Access password">
+    <button class="primary wide" id="gate-go" type="button">Enter</button>
+    <p class="gate__err" id="gate-err" hidden>That password is not correct.</p>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="brand">
+    <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+      <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+      <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+      <text x="19" y="22" text-anchor="middle"
+        font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+        font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+    </svg>
+    <div>
+      <div class="brand__name">SD Talent</div>
+      <h1>Candidate Submission Builder</h1>
+      <p>Drop the resume, paste your call notes, and get the submission — reason for leaving, background, AI enablement, comp and fit, with the questions you still need to ask called out.</p>
+    </div>
+  </div>
+  <div class="masthead__actions">
+    <a class="btn" href="/">ICP Generator</a>
+    <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
+      Source Direct <span class="arrow">&#8599;</span>
+    </a>
+    <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="pane pane--in">
+    <div class="pane__head">
+      <div class="tabs" role="tablist">
+        <button class="tab is-on" id="tab-build" role="tab" aria-selected="true" type="button">Call &amp; resume</button>
+        <button class="tab" id="tab-history" role="tab" aria-selected="false" type="button">History</button>
+      </div>
+      <span class="chip" id="status">ready</span>
+    </div>
+
+    <div class="mode" id="mode-build">
+      <div class="row">
+        <input class="field" id="f-client" placeholder="Client (e.g. Northwind AI)" aria-label="Client">
+        <input class="field" id="f-role" placeholder="Role" aria-label="Role">
+      </div>
+
+      <div class="lbl">Screening call notes</div>
+      <textarea id="notes" spellcheck="false" aria-label="Screening call notes"
+        placeholder="Paste your notes from the call — or the transcript. Rough is fine; what matters is that it is what they actually said."></textarea>
+
+      <div class="lbl">Resume</div>
+      <div class="file" id="file-chip" hidden>
+        <span class="file__n" id="file-name"></span>
+        <span class="file__m" id="file-size"></span>
+        <button class="file__x" id="file-clear" type="button" title="Remove this file">Remove</button>
+      </div>
+      <div class="drop" id="drop" tabindex="0" role="button"
+        aria-label="Drop a resume file here, or press Enter to browse">
+        <span class="drop__t" id="drop-t">Drop a resume here</span>
+        <span class="drop__s">or click to browse &middot; PDF, Word (.docx), .txt</span>
+      </div>
+      <input type="file" id="file" hidden
+        accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
+
+      <details class="grp" id="grp-paste">
+        <summary>Or paste the resume text<span class="grp__tag" id="tag-paste"></span></summary>
+        <div class="grp__body">
+          <p class="hint">Use this when the resume is a format the drop zone will not take &mdash;
+            a LinkedIn export, an old <code>.doc</code>, or an email body.</p>
+          <textarea id="resume-text" spellcheck="false" aria-label="Resume text"></textarea>
+        </div>
+      </details>
+
+      <details class="grp" id="grp-role">
+        <summary>Role context<span class="grp__tag" id="tag-role"></span></summary>
+        <div class="grp__body">
+          <p class="hint">Give the role and the submission gets assessed against its
+            must-haves, one by one.</p>
+          <select class="field" id="run-pick" aria-label="Use a recent search">
+            <option value="">Pull from a recent search…</option>
+          </select>
+          <textarea id="jd" spellcheck="false" aria-label="Job description"
+            placeholder="…or paste the job description"></textarea>
+          <div class="lbl">Must-haves (one per line)</div>
+          <textarea id="must" spellcheck="false" aria-label="Must-have requirements"></textarea>
+        </div>
+      </details>
+
+      <button class="primary wide" id="btn-build" type="button">Build submission</button>
+      <p class="hint" id="build-hint">Reads the resume and the notes. Usually under a minute.</p>
+    </div>
+
+    <div class="mode" id="mode-history" hidden>
+      <div class="pane__head">
+        <p class="hint" id="hist-note">Submissions from the last 30 days.</p>
+        <button class="quiet" id="btn-hist-refresh" type="button">Refresh</button>
+      </div>
+      <div class="mode" id="hist-list" style="gap:6px;overflow-y:auto"></div>
+    </div>
+
+    <div class="err" id="err" hidden></div>
+  </section>
+
+  <section class="pane pane--out">
+    <div class="doc" id="out"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     The fields a screening call is expected to establish.
+     Mirrors EXPECTED_FIELDS in lib/submission-schema.ts — change
+     one, change both, the same way the rubric is mirrored between
+     index.html and lib/rubric.ts.
+     ============================================================ */
+  var EXPECTED = [
+    ["reason_for_leaving", "Reason for leaving"],
+    ["looking_for", "What they want next"],
+    ["location", "Location"],
+    ["work_preference", "Remote / onsite preference"],
+    ["work_authorization", "Work authorization"],
+    ["background.years_experience", "Years of experience"],
+    ["background.company_stages", "Company stages"],
+    ["compensation.expectation", "Compensation expectation"],
+    ["compensation.notes", "Equity / bonus / flexibility"],
+    ["availability.notice", "Notice period"],
+    ["availability.other_processes", "Other processes in play"],
+    ["client_fit.mission_alignment", "Alignment with the client's mission"],
+    ["client_fit.motivation", "Why this client"]
+  ];
+
+  var MOTION_LABELS = { b2b: "B2B", b2c: "B2C", both: "B2B and B2C", unclear: "Motion unclear" };
+  var VERDICTS = {
+    met: ["Met", "ok"], partial: ["Partial", "md"],
+    not_met: ["Not met", "bad"], unknown: ["Unknown", ""]
+  };
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+
+  function at(obj, path) {
+    var node = obj, parts = path.split("."), i;
+    for (i = 0; i < parts.length; i++) {
+      if (!node || typeof node !== "object") return undefined;
+      node = node[parts[i]];
+    }
+    return node;
+  }
+
+  /** A field the model could not establish. The whole design turns on this. */
+  function missing(f) { return !f || f.value === null || f.value === undefined || f.value === ""; }
+
+  function gapsOf(sub) {
+    return EXPECTED.filter(function (e) { return missing(at(sub, e[0])); })
+      .map(function (e) { return e[1]; });
+  }
+
+  /* ============================ rendering ============================ */
+
+  function srcChip(f) {
+    if (!f || !f.source) return "";
+    return '<span class="src ' + esc(f.source) + '">' + esc(f.source) + "</span>";
+  }
+
+  function fact(label, f) {
+    var h = '<div class="fact"><div class="fact__k">' + esc(label) + srcChip(f) + "</div>";
+    if (missing(f)) {
+      h += '<div class="fact__v miss">Not established</div>';
+    } else {
+      h += '<div class="fact__v">' + esc(f.value) + "</div>";
+      if (f.quote) h += '<div class="fact__q">&ldquo;' + esc(f.quote) + "&rdquo;</div>";
+    }
+    return h + "</div>";
+  }
+
+  function dots(rating) {
+    var h = '<span class="dots">', i;
+    for (i = 1; i <= 5; i++) h += "<i" + (rating !== null && i <= rating ? ' class="on"' : "") + "></i>";
+    return h + "</span>";
+  }
+
+  function renderHTML(rec) {
+    var s = rec.submission, c = s.candidate, ctx = rec.context || {}, m = rec.meta || {};
+    var gaps = gapsOf(s);
+    var h = "";
+
+    h += '<div class="subhead">';
+    h += '<div class="eyebrow">Candidate submission' +
+      (ctx.client ? " &middot; " + esc(ctx.client) : "") + "</div>";
+    h += "<h2>" + esc(c.name) + "</h2>";
+    var role = [c.current_title, c.current_company].filter(Boolean).join(" @ ");
+    if (role) h += '<div class="role">' + esc(role) + "</div>";
+    if (ctx.role) h += '<div class="role">Submitted for <b>' + esc(ctx.role) + "</b></div>";
+
+    h += '<div class="chips">';
+    h += '<span class="chip acc">' + esc(MOTION_LABELS[s.background.motion] || s.background.motion) + "</span>";
+    if (s.ai_enablement.rating !== null) {
+      h += '<span class="chip">AI enablement ' + s.ai_enablement.rating + "/5</span>";
+    }
+    (s.background.domains || []).slice(0, 4).forEach(function (d) {
+      h += '<span class="chip">' + esc(d) + "</span>";
+    });
+    h += '<span class="chip ' + (gaps.length ? "md" : "ok") + '">' +
+      (gaps.length ? gaps.length + " open question" + (gaps.length === 1 ? "" : "s") : "Fully covered") +
+      "</span>";
+    if (c.linkedin) {
+      h += '<span class="chip"><a href="' + esc(c.linkedin) +
+        '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">LinkedIn &#8599;</a></span>';
+    }
+    h += "</div></div>";
+
+    h += '<div class="lead">' + esc(s.recruiter_summary) + "</div>";
+
+    h += '<h3 class="sec">Still to ask <span class="n">' + gaps.length + "</span></h3>";
+    if (gaps.length) {
+      h += '<div class="gaps"><h4>Not established on the call</h4><ul>' +
+        gaps.map(function (g) { return "<li>" + esc(g) + "</li>"; }).join("") +
+        "</ul></div>";
+    } else {
+      h += '<div class="gaps none"><h4>Nothing outstanding</h4>' +
+        "<p>Every field a screening call is expected to cover came back with an answer.</p></div>";
+    }
+
+    h += '<h3 class="sec">The move</h3><div class="facts">';
+    h += fact("Reason for leaving", s.reason_for_leaving);
+    h += fact("What they want next", s.looking_for);
+    h += "</div>";
+
+    h += '<h3 class="sec">Where they are</h3><div class="facts">';
+    h += fact("Location", s.location);
+    h += fact("Work preference", s.work_preference);
+    h += fact("Work authorization", s.work_authorization);
+    h += "</div>";
+
+    h += '<h3 class="sec">Compensation &amp; availability</h3><div class="facts">';
+    h += fact("Expectation", s.compensation.expectation);
+    h += fact("Current", s.compensation.current);
+    h += fact("Equity / bonus / flexibility", s.compensation.notes);
+    h += fact("Notice period", s.availability.notice);
+    h += fact("Other processes in play", s.availability.other_processes);
+    h += "</div>";
+
+    h += '<h3 class="sec">Background</h3><div class="facts">';
+    h += fact("Years of experience", s.background.years_experience);
+    h += fact("Company stages", s.background.company_stages);
+    h += '<div class="fact"><div class="fact__k">Go-to-market motion</div>' +
+      '<div class="fact__v">' + esc(MOTION_LABELS[s.background.motion] || s.background.motion) +
+      "</div>" +
+      '<div class="fact__q">' + esc(s.background.motion_evidence) + "</div></div>";
+    if ((s.background.domains || []).length) {
+      h += '<div class="fact"><div class="fact__k">Domains</div><div class="fact__v">' +
+        s.background.domains.map(esc).join(" &middot; ") + "</div></div>";
+    }
+    h += "</div>";
+
+    if ((s.background.highlights || []).length) {
+      h += '<h3 class="sec">Highlights</h3><ul class="plain">' +
+        s.background.highlights.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") +
+        "</ul>";
+    }
+
+    h += '<h3 class="sec">AI enablement</h3><div class="ai"><div class="ai__top">';
+    h += '<span class="ai__r">' + dots(s.ai_enablement.rating) +
+      (s.ai_enablement.rating === null ? "unknown" : s.ai_enablement.rating + "/5") + "</span>";
+    h += "</div>";
+    h += '<p class="ai__s">' + esc(s.ai_enablement.summary) + "</p>";
+    if ((s.ai_enablement.evidence || []).length) {
+      h += '<ul class="ev">' +
+        s.ai_enablement.evidence.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") +
+        "</ul>";
+    }
+    h += "</div>";
+
+    if ((s.must_have_assessment || []).length) {
+      h += '<h3 class="sec">Against the stated must-haves</h3><div class="scroll">' +
+        '<table class="mh"><thead><tr><th>Requirement</th><th>Verdict</th><th>Evidence</th></tr></thead><tbody>';
+      s.must_have_assessment.forEach(function (r) {
+        var v = VERDICTS[r.verdict] || [r.verdict, ""];
+        h += "<tr>" +
+          '<td class="rq">' + esc(r.requirement) + "</td>" +
+          '<td class="vd"><span class="chip ' + v[1] + '">' + esc(v[0]) + "</span></td>" +
+          '<td class="ev">' + esc(r.evidence) + "</td></tr>";
+      });
+      h += "</tbody></table></div>";
+    }
+
+    h += '<h3 class="sec">Fit</h3><div class="facts">';
+    h += fact("Alignment with the mission", s.client_fit.mission_alignment);
+    h += fact("Why this client", s.client_fit.motivation);
+    h += "</div>";
+
+    if ((s.client_fit.concerns || []).length) {
+      h += '<h3 class="sec">Watch-outs <span class="n">' + s.client_fit.concerns.length + "</span></h3>";
+      h += '<div class="gaps"><h4>Raise these before the client finds them</h4><ul style="columns:1">' +
+        s.client_fit.concerns.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+
+    h += '<h3 class="sec">Send it</h3>';
+    h += '<div class="exports">' +
+      '<button class="primary" data-copy="md">Copy markdown</button>' +
+      '<button data-copy="txt">Copy plain text</button>' +
+      '<button data-copy="email">Copy as email</button>' +
+      '<a class="btn" id="mailto" href="#">Open mail draft</a>' +
+      "</div>";
+    h += '<p class="hint" style="margin-top:8px">The mail draft opens with the subject filled ' +
+      "in &mdash; paste the body, which is too long to survive a mailto link. " +
+      (typeof m.cost_usd === "number" ? "This one cost <b>$" + m.cost_usd.toFixed(2) + "</b>." : "") +
+      "</p>";
+
+    return h;
+  }
+
+  /* ============================ exports ============================ */
+
+  function fieldLine(label, f) {
+    if (missing(f)) return "- **" + label + ":** _not established_";
+    return "- **" + label + ":** " + f.value + (f.source ? " _(" + f.source + ")_" : "");
+  }
+
+  function renderMarkdown(rec) {
+    var s = rec.submission, c = s.candidate, ctx = rec.context || {};
+    var out = [], gaps = gapsOf(s);
+
+    out.push("# " + c.name);
+    var role = [c.current_title, c.current_company].filter(Boolean).join(" @ ");
+    if (role) out.push("", role);
+    if (ctx.client || ctx.role) {
+      out.push("", "**Submitted to:** " + (ctx.client || "—") +
+        (ctx.role ? " — " + ctx.role : ""));
+    }
+    if (c.linkedin) out.push("", "[LinkedIn](" + c.linkedin + ")");
+
+    out.push("", "## Summary", "", s.recruiter_summary);
+
+    out.push("", "## The move", "");
+    out.push(fieldLine("Reason for leaving", s.reason_for_leaving));
+    out.push(fieldLine("What they want next", s.looking_for));
+
+    out.push("", "## Where they are", "");
+    out.push(fieldLine("Location", s.location));
+    out.push(fieldLine("Work preference", s.work_preference));
+    out.push(fieldLine("Work authorization", s.work_authorization));
+
+    out.push("", "## Compensation & availability", "");
+    out.push(fieldLine("Expectation", s.compensation.expectation));
+    out.push(fieldLine("Current", s.compensation.current));
+    out.push(fieldLine("Equity / bonus / flexibility", s.compensation.notes));
+    out.push(fieldLine("Notice period", s.availability.notice));
+    out.push(fieldLine("Other processes in play", s.availability.other_processes));
+
+    out.push("", "## Background", "");
+    out.push(fieldLine("Years of experience", s.background.years_experience));
+    out.push(fieldLine("Company stages", s.background.company_stages));
+    out.push("- **Motion:** " + (MOTION_LABELS[s.background.motion] || s.background.motion) +
+      " — " + s.background.motion_evidence);
+    if ((s.background.domains || []).length) {
+      out.push("- **Domains:** " + s.background.domains.join(", "));
+    }
+    if ((s.background.highlights || []).length) {
+      out.push("", "**Highlights**", "");
+      s.background.highlights.forEach(function (x) { out.push("- " + x); });
+    }
+
+    out.push("", "## AI enablement", "");
+    out.push("**Rating:** " + (s.ai_enablement.rating === null ? "unknown"
+      : s.ai_enablement.rating + "/5"), "", s.ai_enablement.summary);
+    if ((s.ai_enablement.evidence || []).length) {
+      out.push("");
+      s.ai_enablement.evidence.forEach(function (x) { out.push("- " + x); });
+    }
+
+    if ((s.must_have_assessment || []).length) {
+      out.push("", "## Against the stated must-haves", "",
+        "| Requirement | Verdict | Evidence |", "|---|---|---|");
+      s.must_have_assessment.forEach(function (r) {
+        out.push("| " + r.requirement + " | " + (VERDICTS[r.verdict] || [r.verdict])[0] +
+          " | " + r.evidence + " |");
+      });
+    }
+
+    out.push("", "## Fit", "");
+    out.push(fieldLine("Alignment with the mission", s.client_fit.mission_alignment));
+    out.push(fieldLine("Why this client", s.client_fit.motivation));
+    if ((s.client_fit.concerns || []).length) {
+      out.push("", "**Watch-outs**", "");
+      s.client_fit.concerns.forEach(function (x) { out.push("- " + x); });
+    }
+
+    if (gaps.length) {
+      out.push("", "## Still to ask", "");
+      gaps.forEach(function (g) { out.push("- " + g); });
+    }
+    return out.join("\n");
+  }
+
+  /** Markdown with the syntax stripped — for an ATS notes box that takes none. */
+  function renderPlain(rec) {
+    return renderMarkdown(rec)
+      .replace(/^#+\s*/gm, "")
+      .replace(/\*\*/g, "")
+      .replace(/_([^_]+)_/g, "$1")
+      .replace(/^\- /gm, "• ");
+  }
+
+  function emailSubject(rec) {
+    var c = rec.submission.candidate, ctx = rec.context || {};
+    return "Candidate submission: " + c.name +
+      (ctx.role ? " — " + ctx.role : "") + (ctx.client ? " @ " + ctx.client : "");
+  }
+
+  function renderEmail(rec) {
+    return "Subject: " + emailSubject(rec) + "\n\n" + renderPlain(rec);
+  }
+
+  /* ============================ wiring ============================ */
+
+  var $out = document.getElementById("out");
+  var $err = document.getElementById("err");
+  var $status = document.getElementById("status");
+  var current = null;
+
+  var EMPTY = '<p class="empty">Paste your call notes and drop the resume on the left. ' +
+    "You get back the submission a client actually reads &mdash; <b>reason for leaving</b>, " +
+    "background and motion, <b>AI enablement</b>, compensation, and fit &mdash; with every " +
+    "field labelled by where it came from, and <b>a list of what the call did not cover</b> " +
+    "so nothing reaches the client as a guess.</p>";
+
+  $out.innerHTML = EMPTY;
+
+  function setStatus(text, cls) {
+    $status.textContent = text;
+    $status.className = "chip" + (cls ? " " + cls : "");
+  }
+  function showError(message) {
+    $err.hidden = false;
+    $err.textContent = message;
+  }
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  /* ---------- access gate ---------- */
+  /*
+   * Same curtain as the ICP generator, and the same password — it doubles as
+   * the bearer token for /api/history. See the note in index.html.
+   */
+  var GATE_PASSWORD = "william27";
+  var GATE_KEY = "sdtalent:unlocked";
+  var $gate = document.getElementById("gate");
+  var $gatePw = document.getElementById("gate-pw");
+  var $gateErr = document.getElementById("gate-err");
+
+  function tryGate() {
+    if ($gatePw.value.trim() === GATE_PASSWORD) {
+      $gate.hidden = true;
+      store(GATE_KEY, "1");
+      loadRuns();
+    } else {
+      $gateErr.hidden = false;
+      $gatePw.value = "";
+      $gatePw.focus();
+    }
+  }
+  document.getElementById("gate-go").addEventListener("click", tryGate);
+  $gatePw.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") tryGate();
+    else $gateErr.hidden = true;
+  });
+  document.getElementById("btn-lock").addEventListener("click", function () {
+    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    $gatePw.value = "";
+    $gateErr.hidden = true;
+    $gate.hidden = false;
+    $gatePw.focus();
+  });
+
+  var unlocked = recall(GATE_KEY) === "1";
+  if (unlocked) $gate.hidden = true; else $gatePw.focus();
+
+  /* ---------- tabs ---------- */
+
+  var TABS = [
+    { key: "build", tab: "tab-build", mode: "mode-build" },
+    { key: "history", tab: "tab-history", mode: "mode-history" }
+  ];
+  function selectTab(which) {
+    TABS.forEach(function (t) {
+      var on = t.key === which;
+      document.getElementById(t.mode).hidden = !on;
+      var btn = document.getElementById(t.tab);
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-selected", String(on));
+    });
+    if (which === "history") loadHistory(false);
+  }
+  TABS.forEach(function (t) {
+    document.getElementById(t.tab).addEventListener("click", function () { selectTab(t.key); });
+  });
+
+  /* ---------- inputs ---------- */
+
+  var $notes = document.getElementById("notes");
+  var $client = document.getElementById("f-client");
+  var $role = document.getElementById("f-role");
+  var $resumeText = document.getElementById("resume-text");
+  var $jd = document.getElementById("jd");
+  var $must = document.getElementById("must");
+  var $runPick = document.getElementById("run-pick");
+  var $buildBtn = document.getElementById("btn-build");
+  var $buildHint = document.getElementById("build-hint");
+  var IDLE_HINT = "Reads the resume and the notes. Usually under a minute.";
+
+  $notes.addEventListener("input", function () { store("sub:notes", $notes.value); });
+  $client.addEventListener("input", function () { store("sub:client", $client.value); });
+  $role.addEventListener("input", function () { store("sub:role", $role.value); });
+
+  function lines(el) {
+    return el.value.split("\n").map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; });
+  }
+
+  function syncTags() {
+    var n = lines($must).length;
+    document.getElementById("tag-role").textContent =
+      n ? n + " must-have" + (n === 1 ? "" : "s") : ($jd.value.trim() ? "JD set" : "");
+    document.getElementById("tag-paste").textContent =
+      $resumeText.value.trim() ? "pasted" : "";
+  }
+  [$jd, $must, $resumeText].forEach(function (el) {
+    el.addEventListener("input", syncTags);
+  });
+
+  /* ---------- resume drop zone ---------- */
+
+  var $drop = document.getElementById("drop");
+  var $file = document.getElementById("file");
+  var $fileChip = document.getElementById("file-chip");
+  var pending = null;   // { name, type, data }
+
+  var MAX_BYTES = 2500000;  // mirrors MAX_RESUME_BYTES in lib/resume.ts
+
+  function fmtSize(n) {
+    return n < 1000000 ? Math.round(n / 1000) + " KB" : (n / 1000000).toFixed(1) + " MB";
+  }
+
+  var $dropT = document.getElementById("drop-t");
+
+  /**
+   * The drop zone stays put once a file is attached. Hiding it would leave
+   * replacing a resume a two-step job — Remove, then drop — when dropping the
+   * new one over the old is the obvious gesture.
+   */
+  function showFile(f) {
+    var has = Boolean(f);
+    $fileChip.hidden = !has;
+    $dropT.textContent = has ? "Drop another to replace" : "Drop a resume here";
+    if (has) {
+      document.getElementById("file-name").textContent = f.name;
+      document.getElementById("file-size").textContent = fmtSize(f.size);
+    }
+  }
+
+  function clearFile() {
+    pending = null;
+    $file.value = "";
+    showFile(null);
+  }
+
+  function takeFile(f) {
+    if (!f) return;
+    $err.hidden = true;
+    if (f.size > MAX_BYTES) {
+      showError(f.name + " is " + fmtSize(f.size) + " and the limit is " +
+        fmtSize(MAX_BYTES) + ".\nPaste the resume text instead, or re-export it smaller.");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      // readAsDataURL gives "data:<mime>;base64,<payload>" — keep the payload.
+      var comma = String(reader.result).indexOf(",");
+      pending = {
+        name: f.name,
+        type: f.type || "",
+        data: String(reader.result).slice(comma + 1)
+      };
+      showFile(f);
+      setStatus("resume ready", "ok");
+    };
+    reader.onerror = function () { showError("Could not read " + f.name + "."); };
+    reader.readAsDataURL(f);
+  }
+
+  $drop.addEventListener("click", function () { $file.click(); });
+  $drop.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $file.click(); }
+  });
+  $file.addEventListener("change", function () { takeFile($file.files[0]); });
+  document.getElementById("file-clear").addEventListener("click", clearFile);
+
+  ["dragenter", "dragover"].forEach(function (ev) {
+    $drop.addEventListener(ev, function (e) {
+      e.preventDefault();
+      $drop.classList.add("is-over");
+    });
+  });
+  ["dragleave", "dragend"].forEach(function (ev) {
+    $drop.addEventListener(ev, function () { $drop.classList.remove("is-over"); });
+  });
+  $drop.addEventListener("drop", function (e) {
+    e.preventDefault();
+    $drop.classList.remove("is-over");
+    takeFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+  });
+  // Without this the browser navigates away to the dropped file, silently
+  // losing whatever was typed into the form.
+  ["dragover", "drop"].forEach(function (ev) {
+    window.addEventListener(ev, function (e) {
+      if (!$drop.contains(e.target)) e.preventDefault();
+    });
+  });
+
+  /* ---------- role context from a stored search ---------- */
+
+  function histFetch(path) {
+    return fetch(path, { headers: { authorization: "Bearer " + GATE_PASSWORD } });
+  }
+
+  var runs = [];
+  async function loadRuns() {
+    try {
+      var res = await histFetch("/api/history?kind=run");
+      if (!res.ok) return;                 // role context is optional; stay quiet
+      var payload = await res.json();
+      runs = payload.runs || [];
+      runs.forEach(function (r) {
+        var o = document.createElement("option");
+        o.value = r.id;
+        // Dated, because two searches for the same role are otherwise
+        // indistinguishable in the list.
+        o.textContent = r.title + " @ " + r.company + " — " + fmtWhen(r.at);
+        $runPick.appendChild(o);
+      });
+    } catch (e) { /* optional */ }
+  }
+
+  $runPick.addEventListener("change", async function () {
+    var id = $runPick.value;
+    if (!id) return;
+    setStatus("loading role", "md");
+    try {
+      var res = await histFetch("/api/history?kind=run&id=" + encodeURIComponent(id));
+      var payload = await res.json();
+      if (!res.ok) { showError(payload.error || "Could not load that search."); return; }
+      var rec = payload.run;
+      var req = (rec.intake || {}).req || {};
+      $jd.value = (rec.criteria || {}).jd || "";
+      $must.value = (req.must_haves || []).join("\n");
+      if (!$client.value.trim()) $client.value = req.company || "";
+      if (!$role.value.trim()) $role.value = req.title || "";
+      syncTags();
+      setStatus("role loaded", "ok");
+    } catch (e) {
+      showError("Could not reach the history endpoint.");
+    }
+  });
+
+  /* ---------- build ---------- */
+
+  async function build() {
+    var notes = $notes.value.trim();
+    if (notes.length < 40 && !pending && !$resumeText.value.trim()) {
+      showError("Add the call notes, drop a resume, or both — there is nothing to build from yet.");
+      setStatus("need input", "bad");
+      return;
+    }
+
+    $err.hidden = true;
+    $buildBtn.disabled = true;
+    setStatus("building", "md");
+
+    var started = Date.now();
+    var ticker = setInterval(function () {
+      $buildHint.innerHTML = "Reading and writing &mdash; <b>" +
+        Math.round((Date.now() - started) / 1000) + "s</b>.";
+    }, 1000);
+
+    function finish(text, cls) {
+      clearInterval(ticker);
+      $buildBtn.disabled = false;
+      $buildHint.textContent = IDLE_HINT;
+      setStatus(text, cls);
+    }
+
+    try {
+      var res = await fetch("/api/submission", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          notes: notes,
+          resume_file: pending,
+          resume_text: $resumeText.value.trim(),
+          client: $client.value.trim(),
+          role: $role.value.trim(),
+          jd: $jd.value.trim(),
+          must_haves: lines($must),
+          run_id: $runPick.value || null
+        })
+      });
+      var payload = await res.json().catch(function () { return null; });
+
+      if (!res.ok) {
+        if (res.status === 504) {
+          showError("The build ran longer than the server holds a connection open (504).\n" +
+            "Try again — a shorter set of notes, or a smaller resume, usually clears it.");
+          finish("timed out", "bad");
+          return;
+        }
+        var msg = (payload && payload.error) || ("Request failed with " + res.status + ".");
+        if (payload && payload.detail) msg += "\n" + payload.detail;
+        if (payload && payload.issues) {
+          msg += "\n" + payload.issues.map(function (i) {
+            return "· " + (i.path || []).join(".") + ": " + i.message;
+          }).join("\n");
+        }
+        showError(msg);
+        finish("failed", "bad");
+        return;
+      }
+
+      current = {
+        submission: payload.submission,
+        meta: payload.meta,
+        context: {
+          client: $client.value.trim(),
+          role: $role.value.trim()
+        }
+      };
+      $out.innerHTML = renderHTML(current);
+      wireExports();
+
+      var meta = payload.meta || {};
+      var gapCount = gapsOf(payload.submission).length;
+      clearInterval(ticker);
+      $buildBtn.disabled = false;
+      var savedBit = meta.saved ? " Saved to <b>History</b>."
+        : meta.history_configured === false
+          ? " <b>Not saved</b> — no history store is connected."
+          : " <b>Not saved</b> — the history store did not accept it.";
+      $buildHint.innerHTML = "Built in <b>" +
+        Math.round((Date.now() - started) / 1000) + "s</b>." +
+        (typeof meta.cost_usd === "number" ? " Cost <b>$" + meta.cost_usd.toFixed(2) + "</b>." : "") +
+        savedBit;
+      setStatus(gapCount ? gapCount + " to ask" : "complete", gapCount ? "md" : "ok");
+      histLoaded = false;
+    } catch (err) {
+      showError("Could not reach the submission endpoint.\n" +
+        (err && err.message ? err.message : err));
+      finish("failed", "bad");
+    }
+  }
+
+  $buildBtn.addEventListener("click", build);
+
+  /* ---------- exports ---------- */
+
+  function copy(text, btn, label) {
+    function done(ok) {
+      btn.textContent = ok ? "Copied" : "Press Ctrl+C";
+      setTimeout(function () { btn.textContent = label; }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); },
+        function () { done(false); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      done(ok);
+    }
+  }
+
+  function wireExports() {
+    if (!current) return;
+    var link = document.getElementById("mailto");
+    if (link) {
+      // Subject only. A full submission runs to several KB and mail clients
+      // truncate a long mailto body without saying so — a silently half-sent
+      // candidate writeup is worse than an extra paste.
+      link.href = "mailto:?subject=" + encodeURIComponent(emailSubject(current));
+    }
+    $out.querySelectorAll("[data-copy]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var kind = btn.getAttribute("data-copy");
+        var text = kind === "md" ? renderMarkdown(current)
+          : kind === "txt" ? renderPlain(current)
+          : renderEmail(current);
+        copy(text, btn, btn.textContent);
+      });
+    });
+  }
+
+  /* ---------- history ---------- */
+
+  var $histList = document.getElementById("hist-list");
+  var $histNote = document.getElementById("hist-note");
+  var HIST_IDLE = "Submissions from the last 30 days.";
+  var histLoaded = false;
+
+  function fmtWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function histMessage(text) {
+    $histList.innerHTML = '<p class="hint" style="padding:14px 2px">' + esc(text) + "</p>";
+  }
+
+  function histError(res, payload) {
+    if (res.status === 401) {
+      return "History rejected this password. The gate password and the server's " +
+        "APP_ACCESS_TOKEN must be the same value — check it in Vercel → Settings → " +
+        "Environment Variables.";
+    }
+    return (payload && payload.error) || ("History request failed with " + res.status + ".");
+  }
+
+  async function loadHistory(force) {
+    if (histLoaded && !force) return;
+    histLoaded = true;
+    histMessage("Loading…");
+    try {
+      var res = await histFetch("/api/history?kind=sub");
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        histLoaded = false;
+        $histNote.textContent = HIST_IDLE;
+        histMessage(histError(res, payload));
+        return;
+      }
+      var rows = payload.records || [];
+      $histNote.textContent = rows.length
+        ? rows.length + " submission" + (rows.length === 1 ? "" : "s") + " in the last " +
+          (payload.window_days || 30) + " days."
+        : HIST_IDLE;
+      if (!rows.length) {
+        histMessage("No submissions stored yet. Every one from here on is kept for " +
+          (payload.window_days || 30) + " days and is visible from any machine.");
+        return;
+      }
+      $histList.innerHTML = rows.map(function (r) {
+        return '<button class="drop" style="text-align:left;align-items:stretch;padding:9px 11px;' +
+          'border-style:solid;gap:3px" type="button" data-sub="' + esc(r.id) + '">' +
+          '<span class="drop__t">' + esc(r.name || "Unnamed") + "</span>" +
+          '<span class="drop__s" style="font-family:var(--f-data)">' +
+            esc(fmtWhen(r.at)) +
+            (r.client ? " &middot; " + esc(r.client) : "") +
+            (r.role ? " &middot; " + esc(r.role) : "") +
+            (r.gaps ? " &middot; " + r.gaps + " to ask" : "") +
+          "</span></button>";
+      }).join("");
+    } catch (err) {
+      histLoaded = false;
+      histMessage("Could not reach the history endpoint. " + (err && err.message ? err.message : ""));
+    }
+  }
+
+  $histList.addEventListener("click", async function (ev) {
+    var row = ev.target.closest("[data-sub]");
+    if (!row) return;
+    setStatus("opening", "md");
+    try {
+      var res = await histFetch("/api/history?kind=sub&id=" + encodeURIComponent(row.dataset.sub));
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) { showError(histError(res, payload)); setStatus("failed", "bad"); return; }
+      current = payload.record;
+      $err.hidden = true;
+      $out.innerHTML = renderHTML(current);
+      wireExports();
+      var g = gapsOf(current.submission).length;
+      setStatus(g ? g + " to ask" : "complete", g ? "md" : "ok");
+    } catch (e) {
+      showError("Could not reach the history endpoint.");
+      setStatus("failed", "bad");
+    }
+  });
+
+  document.getElementById("btn-hist-refresh").addEventListener("click", function () {
+    loadHistory(true);
+  });
+
+  /* ---------- restore ---------- */
+
+  $notes.value = recall("sub:notes") || "";
+  $client.value = recall("sub:client") || "";
+  $role.value = recall("sub:role") || "";
+  syncTags();
+  if (unlocked) loadRuns();
+})();
+</script>
+</body>
+</html>

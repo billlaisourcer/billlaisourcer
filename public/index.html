@@ -360,7 +360,7 @@
   .reqs__cap { margin: 0; font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
   .reqs__cap.is-over { color: var(--score); }
 
-  /* History list. Entries are stored locally in this browser only. */
+  /* History list. Entries live on the server, so they are the same from every machine. */
   .hist { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
   .hist__empty {
     margin: 0; font-family: var(--f-prose); font-size: 13px; line-height: 1.55;
@@ -584,6 +584,57 @@
     color: var(--ink); }
   .audit li { margin-bottom: 5px; }
 
+
+  /* The criteria that produced a stored slate, shown above the slate itself.
+     Mirrors the same block in submit.html. */
+  .hcrit {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0;
+    padding: 15px 18px; margin-bottom: 26px;
+  }
+  .hcrit__head {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; justify-content: space-between;
+  }
+  .hcrit__eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .hcrit__facts {
+    display: flex; flex-wrap: wrap; gap: 5px 22px; margin-top: 11px;
+    font-size: 13px; color: var(--ink-muted);
+  }
+  .hcrit__facts b {
+    color: var(--ink-faint); font-weight: 700; font-size: 10.5px;
+    letter-spacing: 0.07em; text-transform: uppercase; margin-right: 5px;
+  }
+  .hcrit__block { margin-top: 13px; }
+  .hcrit__label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px;
+  }
+  .hcrit__block ul {
+    margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 13.5px;
+  }
+  .hcrit__fb {
+    margin: 0; padding: 9px 12px; border-radius: var(--r);
+    background: var(--accent-soft); color: var(--ink);
+    font-family: var(--f-prose); font-size: 13.5px; line-height: 1.5;
+  }
+  .hcrit details > summary {
+    cursor: pointer; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .hcrit details > summary:hover { color: var(--accent); }
+  .hcrit pre {
+    margin: 9px 0 0; padding: 12px; max-height: 320px; overflow: auto;
+    background: var(--surface-sunk); border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    font-family: var(--f-data); font-size: 11.5px; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-word; color: var(--ink-muted);
+  }
+
   .empty { color: var(--ink-faint); font-family: var(--f-prose); font-size: 15px;
     padding: 40px 0; max-width: 56ch; }
   .empty b { color: var(--ink); }
@@ -629,6 +680,7 @@
     </div>
   </div>
   <div class="masthead__actions">
+    <a class="btn" href="/submit">Submission Builder</a>
     <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
       Source Direct <span class="arrow">&#8599;</span>
     </a>
@@ -1429,64 +1481,116 @@
   }
   TABS.forEach(function (name) {
     document.getElementById("tab-" + name)
-      .addEventListener("click", function () { selectTab(name); });
+      .addEventListener("click", function () {
+        selectTab(name);
+        // Fetch on open rather than at load: the endpoint is authenticated and
+        // most sessions never look at history.
+        if (name === "history") historyRefresh();
+      });
   });
 
   /* ---------- history ----------
-     Saved slates live in this browser's localStorage. Storing them costs no
+     Slates live in a database on the server, not in this browser. That is the
+     whole point: a run made on the office machine has to be there from the
+     laptop too, and it has to survive a cleared browser. Storing them costs no
      tokens and no credits — only an API call does — so the full result is kept
-     rather than just the inputs, and reloading a past run is free and instant
-     instead of a fresh $0.40+ search. */
+     rather than just the inputs, and reopening a past run is free and instant
+     instead of a fresh $0.40+ search.
 
-  var HIST_KEY = "calibration-scorecard:history";
-  var HIST_MAX = 25;
+     The endpoint is gated on APP_ACCESS_TOKEN, and the gate password doubles
+     as that token — one value, set in both places. */
+
+  function histFetch(path, options) {
+    var opts = options || {};
+    opts.headers = { authorization: "Bearer " + GATE_PASSWORD };
+    return fetch(path, opts);
+  }
+
+  /* A 401 here has exactly one cause worth naming: the gate password and the
+     server's APP_ACCESS_TOKEN have drifted apart. */
+  function histError(res, payload) {
+    if (res.status === 401) {
+      return "History rejected this password. The gate password and the server's " +
+        "APP_ACCESS_TOKEN must be the same value — check it in Vercel → Settings → " +
+        "Environment Variables.";
+    }
+    return (payload && payload.error) || ("History request failed with " + res.status + ".");
+  }
 
   var $histList = document.getElementById("hist-list");
   var $histNote = document.getElementById("hist-note");
   var $histClear = document.getElementById("btn-hist-clear");
   var histLoadedId = null;
 
-  function historyRead() {
+  /* The list the server last gave us, so rendering and deleting do not each
+     need a round trip. */
+  var histRows = [];
+  var histState = "idle";   // idle | loading | error
+  var histMessage = "";
+
+  async function historyRefresh() {
+    histState = "loading";
+    renderHistory();
     try {
-      var raw = localStorage.getItem(HIST_KEY);
-      var arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) {
-      return []; // private mode, or a corrupted entry — an unusable history is not an error
-    }
-  }
-
-  function historyWrite(entries) {
-    // Quota is finite and a slate is not small. Drop oldest until it fits
-    // rather than letting the write throw and lose the run entirely.
-    var list = entries.slice(0, HIST_MAX);
-    while (list.length) {
-      try {
-        localStorage.setItem(HIST_KEY, JSON.stringify(list));
-        return list;
-      } catch (e) {
-        list = list.slice(0, list.length - 1);
+      var res = await histFetch("/api/history?kind=run");
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        histRows = [];
+        histState = "error";
+        histMessage = histError(res, payload);
+      } else {
+        histRows = payload.runs || [];
+        histState = "idle";
+        histMessage = "";
       }
+    } catch (err) {
+      histRows = [];
+      histState = "error";
+      histMessage = "Could not reach the history endpoint. " +
+        (err && err.message ? err.message : "");
     }
-    try { localStorage.removeItem(HIST_KEY); } catch (e) { /* nothing to do */ }
-    return [];
+    renderHistory();
   }
 
-  function historySave(intake, meta) {
-    var req = (intake && intake.req) || {};
-    var entry = {
-      id: String(Date.now()) + "-" + Math.random().toString(36).slice(2, 7),
-      at: new Date().toISOString(),
-      title: req.title || "Untitled role",
-      company: req.company || "",
-      candidates: (meta && meta.candidates) || (intake.candidates || []).length,
-      cost: meta && typeof meta.cost_usd === "number" ? meta.cost_usd : null,
-      model: (meta && meta.usage && meta.usage.model) || (meta && meta.model) || "",
-      intake: intake
-    };
-    var list = historyWrite([entry].concat(historyRead()));
-    histLoadedId = entry.id;
-    return list;
+  async function historyDelete(id) {
+    try {
+      var res = await histFetch("/api/history?kind=run&id=" + encodeURIComponent(id),
+        { method: "DELETE" });
+      if (!res.ok) {
+        var payload = await res.json().catch(function () { return null; });
+        histState = "error";
+        histMessage = histError(res, payload);
+        renderHistory();
+        return;
+      }
+      if (histLoadedId === id) histLoadedId = null;
+      // Drop it locally too rather than re-fetching, so the row disappears the
+      // moment it is clicked.
+      histRows = histRows.filter(function (e) { return e.id !== id; });
+      renderHistory();
+    } catch (err) {
+      histState = "error";
+      histMessage = "Could not reach the history endpoint.";
+      renderHistory();
+    }
+  }
+
+  async function historyClear() {
+    try {
+      var res = await histFetch("/api/history?kind=run&all=1", { method: "DELETE" });
+      if (!res.ok) {
+        var payload = await res.json().catch(function () { return null; });
+        histState = "error";
+        histMessage = histError(res, payload);
+      } else {
+        histRows = [];
+        histLoadedId = null;
+      }
+    } catch (err) {
+      histState = "error";
+      histMessage = "Could not reach the history endpoint.";
+    }
+    renderHistory();
   }
 
   function histWhen(iso) {
@@ -1497,27 +1601,41 @@
   }
 
   function renderHistory() {
-    var list = historyRead();
+    var list = histRows;
     $histClear.hidden = list.length === 0;
+
+    if (histState === "loading" && !list.length) {
+      $histList.innerHTML = "";
+      $histNote.textContent = "Loading…";
+      return;
+    }
+
+    if (histState === "error") {
+      $histList.innerHTML = "";
+      $histNote.textContent = histMessage;
+      return;
+    }
 
     if (!list.length) {
       $histList.innerHTML = "";
-      $histNote.textContent = "No saved runs yet. Every completed slate is saved here " +
-        "automatically, in this browser only.";
+      $histNote.textContent = "No saved runs yet. Every completed slate is saved " +
+        "automatically and is visible from any machine you sign in from.";
       return;
     }
 
     $histNote.textContent = list.length + " saved " + (list.length === 1 ? "run" : "runs") +
-      " — this browser only. Newest first, oldest dropped past " + HIST_MAX + ".";
+      " — from any machine. Newest first, kept for 30 days.";
 
     $histList.innerHTML = list.map(function (e) {
-      var bits = [histWhen(e.at), e.candidates + " profiles"];
-      if (typeof e.cost === "number") bits.push("$" + e.cost.toFixed(2));
+      var bits = [histWhen(e.at), (e.n || 0) + " profiles"];
+      if (typeof e.cost_usd === "number") bits.push("$" + e.cost_usd.toFixed(2));
+      if (e.recal) bits.push("recalibration");
       var where = e.company ? " @ " + e.company : "";
+      var title = e.title || "Untitled role";
       return '<div class="hist__item' + (e.id === histLoadedId ? " is-on" : "") +
         '" data-id="' + esc(e.id) + '" role="button" tabindex="0">' +
           '<div class="hist__main">' +
-            '<div class="hist__title">' + esc(e.title + where) + "</div>" +
+            '<div class="hist__title">' + esc(title + where) + "</div>" +
             '<div class="hist__meta">' + esc(bits.join("  \u00B7  ")) + "</div>" +
           "</div>" +
           '<button class="hist__del" data-del="' + esc(e.id) + '" ' +
@@ -1526,13 +1644,77 @@
     }).join("");
   }
 
-  function historyLoad(id) {
-    var entry = historyRead().filter(function (e) { return e.id === id; })[0];
-    if (!entry) return;
-    histLoadedId = id;
-    $in.value = JSON.stringify(entry.intake, null, 2);
-    run(); // re-scores locally — no API call, no tokens, no credits
-    renderHistory();
+  /* The criteria that produced a stored slate, rendered above the slate. The
+     search results alone do not tell you what was asked for, and a slate you
+     cannot interpret six weeks later is not much of a record. */
+  function criteriaPanel(rec) {
+    var c = rec.criteria || {}, m = rec.meta || {};
+    var h = '<div class="hcrit">';
+    h += '<div class="hcrit__head"><span class="hcrit__eyebrow">From history · ' +
+      esc(histWhen(rec.created_at)) + "</span>" +
+      '<button id="btn-load-criteria" type="button">Load this criteria into the form</button></div>';
+
+    var facts = [];
+    if (c.location) facts.push(["Location", c.location]);
+    facts.push(["Slate asked for", String(c.count || "—")]);
+    facts.push(["Searches", String(m.searches || 0)]);
+    if (m.model) facts.push(["Model", m.model]);
+    if (typeof m.cost_usd === "number") facts.push(["Cost", "$" + m.cost_usd.toFixed(2)]);
+    if (typeof m.elapsed_ms === "number") facts.push(["Took", Math.round(m.elapsed_ms / 1000) + "s"]);
+    h += '<div class="hcrit__facts">' + facts.map(function (f) {
+      return "<span><b>" + esc(f[0]) + "</b>" + esc(f[1]) + "</span>";
+    }).join("") + "</div>";
+
+    if (c.notes) {
+      h += '<div class="hcrit__block"><div class="hcrit__label">Recruiter notes</div>' +
+        '<p class="hcrit__fb">' + esc(c.notes) + "</p></div>";
+    }
+    if (c.feedback) {
+      h += '<div class="hcrit__block"><div class="hcrit__label">Recalibration feedback</div>' +
+        '<p class="hcrit__fb">' + esc(c.feedback) + "</p></div>";
+    }
+    [["Must have", c.must_haves], ["Good to have", c.nice_to_haves]].forEach(function (pair) {
+      var items = pair[1] || [];
+      if (!items.length) return;
+      h += '<div class="hcrit__block"><div class="hcrit__label">' + esc(pair[0]) +
+        " (as stated)</div><ul>" +
+        items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+    });
+    if (c.jd) {
+      h += '<div class="hcrit__block"><details><summary>Job description</summary><pre>' +
+        esc(c.jd) + "</pre></details></div>";
+    }
+    return h + "</div>";
+  }
+
+  /** The record on screen, so "load into form" knows what to copy across. */
+  var openedRun = null;
+
+  async function historyLoad(id) {
+    setStatus("opening", "md");
+    try {
+      var res = await histFetch("/api/history?kind=run&id=" + encodeURIComponent(id));
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        showError(histError(res, payload));
+        setStatus("failed", "bad");
+        return;
+      }
+      var rec = payload.run;
+      openedRun = rec;
+      histLoadedId = id;
+      $err.hidden = true;
+      // Feeding the stored slate through the render path reuses the whole
+      // existing scorer — Copy markdown works on a historical run exactly as
+      // on a fresh one. No API call, no tokens, no credits.
+      $in.value = JSON.stringify(rec.intake, null, 2);
+      run();
+      $out.insertAdjacentHTML("afterbegin", criteriaPanel(rec));
+      renderHistory();
+    } catch (err) {
+      showError("Could not reach the history endpoint.");
+      setStatus("failed", "bad");
+    }
   }
 
   $histList.addEventListener("click", function (ev) {
@@ -1540,9 +1722,7 @@
     if (del) {
       ev.stopPropagation();
       var delId = del.getAttribute("data-del");
-      historyWrite(historyRead().filter(function (e) { return e.id !== delId; }));
-      if (histLoadedId === delId) histLoadedId = null;
-      renderHistory();
+      historyDelete(delId);
       return;
     }
     var item = ev.target.closest(".hist__item");
@@ -1558,10 +1738,9 @@
   });
 
   $histClear.addEventListener("click", function () {
-    if (!confirm("Delete all saved runs from this browser? This cannot be undone.")) return;
-    historyWrite([]);
-    histLoadedId = null;
-    renderHistory();
+    if (!confirm("Delete every saved run? They go from the server, so this " +
+      "removes them on every machine and cannot be undone.")) return;
+    historyClear();
   });
 
   /* ---------- source & score ---------- */
@@ -1724,9 +1903,11 @@
 
       var meta = payload.meta || {};
 
-      // Saved after the slate renders, so a storage failure can never cost the
-      // user a run they already paid for.
-      historySave(payload.intake, meta);
+      // The server records the run inside /api/intake, after everything that
+      // could fail the request — a storage outage costs a history entry, never
+      // a slate already paid for. Here we only refresh the list.
+      histLoadedId = meta.run_id || null;
+      historyRefresh();
 
       var elapsed = Math.round((Date.now() - started) / 1000);
       clearInterval(ticker);
@@ -1737,9 +1918,15 @@
       var costBit = typeof meta.cost_usd === "number"
         ? " Cost <b>$" + meta.cost_usd.toFixed(2) + "</b>."
         : "";
+      // Say when a run did not make it into history. Silence would leave the
+      // recruiter believing a slate is recoverable when it is not.
+      var savedBit = meta.saved
+        ? " Saved to <b>History</b>."
+        : meta.history_configured === false
+          ? " <b>Not saved</b> — no history store is connected."
+          : " <b>Not saved</b> — the history store did not accept it.";
       $runHint.innerHTML = "Sourced <b>" + (meta.candidates || 0) + "</b> profiles across <b>" +
-        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>." + costBit +
-        " The Intake JSON tab has the raw slate.";
+        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>." + costBit + savedBit;
     } catch (err) {
       showError("Could not reach the sourcing endpoint.\n" + (err && err.message ? err.message : err));
       finish("failed", "bad");
@@ -1790,6 +1977,40 @@
     selectTab("jd");
     setStatus("ready");
     $jdTitle.focus();
+  });
+
+  // The criteria panel is re-rendered on every open, so the button inside it
+  // cannot carry a listener of its own.
+  $out.addEventListener("click", function (ev) {
+    if (!ev.target.closest("#btn-load-criteria") || !openedRun) return;
+    var c = openedRun.criteria || {};
+
+    $jd.value = c.jd || "";
+    $jdLocation.value = c.location || "";
+    $jdNotes.value = c.notes || "";
+    $reqMust.value = (c.must_haves || []).join("\n");
+    $reqNice.value = (c.nice_to_haves || []).join("\n");
+    if (c.count) {
+      var sel = document.getElementById("jd-count");
+      if (sel) sel.value = String(c.count);
+    }
+    if ($jdTitle) $jdTitle.value = ((openedRun.intake || {}).req || {}).title || "";
+
+    store("calibration-scorecard:jd", $jd.value);
+    syncReqs();
+    if ($reqMust.value.trim() || $reqNice.value.trim()) $reqs.open = true;
+
+    // Seed the recalibration panel from this slate so a follow-up run knows
+    // who it has already shown.
+    lastSlate = ((openedRun.intake || {}).candidates || []).map(function (x) {
+      return x.name + " — " + (x.title || "?") + " @ " + (x.company || "?");
+    });
+    $recal.hidden = false;
+    $recalText.value = "";
+
+    selectTab("jd");
+    $jd.focus();
+    setStatus("criteria loaded", "ok");
   });
 
   /* ---------- restore ---------- */
