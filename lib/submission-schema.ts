@@ -13,6 +13,19 @@ import { z } from "zod";
  * answer the useful one too.
  */
 
+/**
+ * A list the page wants kept short, trimmed rather than rejected.
+ *
+ * These caps are presentational — six highlights read well, twelve do not.
+ * They were never correctness constraints, so enforcing them with `.max()` was
+ * a mistake: a model that returned one concern too many failed the whole parse,
+ * and the recruiter lost a submission they had already paid for and waited on.
+ * Trimming keeps the page tidy and cannot cost anyone a run. The prompt states
+ * the same numbers, so trimming should be rare rather than routine.
+ */
+const capped = (max: number) =>
+  z.array(z.string().min(1)).transform((xs) => xs.slice(0, max));
+
 export const SOURCES = ["call", "resume", "both", "inferred"] as const;
 
 /**
@@ -52,12 +65,12 @@ export const SubmissionSchema = z.object({
   background: z.object({
     years_experience: Field,
     /** The markets they have actually worked in, e.g. ["fintech", "devtools"]. */
-    domains: z.array(z.string()).max(8),
+    domains: capped(8),
     motion: z.enum(MOTIONS),
     motion_evidence: z.string().min(1),
     company_stages: Field,
     /** Concrete, checkable accomplishments — not adjectives. */
-    highlights: z.array(z.string()).max(6),
+    highlights: capped(6),
   }),
 
   reason_for_leaving: Field,
@@ -70,7 +83,7 @@ export const SubmissionSchema = z.object({
   ai_enablement: z.object({
     rating: z.number().min(0).max(5).nullable(),
     summary: z.string().min(1),
-    evidence: z.array(z.string()).max(6),
+    evidence: capped(6),
   }),
 
   compensation: z.object({
@@ -90,7 +103,7 @@ export const SubmissionSchema = z.object({
     mission_alignment: Field,
     motivation: Field,
     /** Honest risks. A submission with no watch-outs has not been thought about. */
-    concerns: z.array(z.string()).max(5),
+    concerns: capped(5),
   }),
 
   /** Present only when the request carried the role's stated must-haves. */
