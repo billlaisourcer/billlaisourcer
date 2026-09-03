@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
+  "rewrites": [{ "source": "/submit", "destination": "/submit.html" }],
   "headers": [
     {
       "source": "/(.*)",

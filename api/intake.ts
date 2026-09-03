@@ -5,6 +5,7 @@ import Anthropic, {
   RateLimitError,
 } from "@anthropic-ai/sdk";
 import { IntakeSchema, extractJson } from "../lib/intake-schema.js";
+import { clampJd, newRunId, saveRun, storageConfigured } from "../lib/history.js";
 import {
   BAND_TARGETS,
   DEFAULT_WEIGHTS,
@@ -27,6 +28,15 @@ import {
 /** Sourcing runs a live tool loop; it needs far longer than the 10s default. */
 export const maxDuration = 300;
 
+// Sonnet 5 rather than Opus 5: 2.5x cheaper ($2/$10 per MTok vs $5/$25) and
+// faster, which matters because the biggest slice of wall clock is generating
+// the final slate one token at a time, and a run that passes 300s is a 504
+// that bills for nothing. Overridable without a deploy — set INTAKE_MODEL in
+// the environment. Note the cache is model-scoped, so changing this starts the
+// cache cold once; and any model here must clear its own cacheable minimum
+// (Sonnet 5 is 1024 tokens; the system prompt is ~1500).
+const MODEL = process.env.INTAKE_MODEL || "claude-sonnet-5";
+
 const MCP_SERVER_URL = "https://api.supercarl.ai/mcp";
 const MCP_NAME = "supercarl";
 
@@ -48,7 +58,8 @@ that", and that reaction is worth more than weeks of sourcing against a misread 
 
 ## Method
 
-1. Dissect the JD. Separate the real title from the posted one. Cut the wish-list down to
+1. Dissect the JD. Separate the real title from the posted one — unless the recruiter
+   stated a title, in which case that is the real title and there is nothing to infer. Cut the wish-list down to
    3-6 genuine must-haves — the things a candidate truly cannot lack. Job descriptions
    over-list; the must-have list is not the wish list. Getting this wrong miscalibrates
    every profile that follows.
@@ -155,6 +166,7 @@ function json(body: unknown, status: number): Response {
  * Response. Naming the method also gives us a free 405 on everything else.
  */
 export async function POST(request: Request): Promise<Response> {
+  const startedAt = Date.now();
   // NOTE: this endpoint is intentionally open. It was gated on APP_ACCESS_TOKEN;
   // the owner removed the gate deliberately. Anyone who knows the URL can spend
   // the configured Super Carl credits and Anthropic tokens. To restore the gate,
@@ -169,6 +181,7 @@ export async function POST(request: Request): Promise<Response> {
 
   let body: {
     jd?: unknown;
+    title?: unknown;
     location?: unknown;
     notes?: unknown;
     count?: unknown;
@@ -207,6 +220,9 @@ export async function POST(request: Request): Promise<Response> {
           .slice(0, cap)
       : [];
 
+  const title =
+    typeof body.title === "string" ? body.title.trim().slice(0, 200) : "";
+
   const mustHaves = lines(body.must_haves, 6);
   const niceToHaves = lines(body.nice_to_haves, 8);
 
@@ -215,7 +231,15 @@ export async function POST(request: Request): Promise<Response> {
     ? body.previous.filter((x): x is string => typeof x === "string").slice(0, 12)
     : [];
 
-  const userParts = [`Job description:\n\n${jd}`];
+  const userParts: string[] = [];
+  if (title) {
+    userParts.push(
+      `Role title, stated by the recruiter: ${title}\n\nThis IS the real title. ` +
+        `Use it verbatim as req.title and search against it. Do not re-derive a title ` +
+        `from the JD, and where the posted title disagrees with this one, this one wins.\n\n`,
+    );
+  }
+  userParts.push(`Job description:\n\n${jd}`);
   if (location) userParts.push(`\n\nLocation / remote policy: ${location}`);
   if (notes) userParts.push(`\n\nRecruiter notes: ${notes}`);
 
@@ -264,8 +288,14 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const stream = client.beta.messages.stream({
-      model: "claude-opus-5",
-      max_tokens: 16000,
+      model: MODEL,
+      // 16000 was not enough. Sonnet spends output tokens on thinking before it
+      // writes anything, and thinking counts against this ceiling, so the slate
+      // JSON was being truncated mid-object — two live runs reported 17.1k and
+      // 17.4k output tokens and both failed schema validation. This is a ceiling,
+      // not a target: the model still emits only what it needs, and the request
+      // streams, so a large value costs nothing until it is used.
+      max_tokens: 32000,
       // The whole job must finish inside the platform's function duration cap.
       // Lower effort means fewer, more consolidated tool calls — the single
       // biggest lever on wall-clock here.
@@ -310,15 +340,26 @@ export async function POST(request: Request): Promise<Response> {
       cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
     };
-    // Claude Opus 5: $5 / MTok in, $25 / MTok out. Cache reads bill at ~0.1x
-    // input, writes at ~1.25x.
+    // Per-MTok list prices. Cache reads bill at ~0.1x input, writes at ~1.25x.
+    // An unknown model falls back to Sonnet 5's rates and the reported cost is
+    // an estimate — better than dropping the figure entirely, but do not treat
+    // it as authoritative for a model that is not in this table.
+    const RATES: Record<string, { in: number; out: number }> = {
+      "claude-opus-5": { in: 5, out: 25 },
+      "claude-sonnet-5": { in: 2, out: 10 },
+      "claude-haiku-4-5": { in: 1, out: 5 },
+    };
+    const rate = RATES[MODEL] ?? { in: 2, out: 10 };
     const cost =
-      (usage.input_tokens * 5 +
-        usage.cache_read_input_tokens * 0.5 +
-        usage.cache_creation_input_tokens * 6.25 +
-        usage.output_tokens * 25) /
+      (usage.input_tokens * rate.in +
+        usage.cache_read_input_tokens * rate.in * 0.1 +
+        usage.cache_creation_input_tokens * rate.in * 1.25 +
+        usage.output_tokens * rate.out) /
       1_000_000;
-    console.log("intake usage", JSON.stringify({ ...usage, cost_usd: cost }));
+    console.log(
+      "intake usage",
+      JSON.stringify({ model: MODEL, ...usage, cost_usd: cost }),
+    );
 
     if (message.stop_reason === "refusal") {
       return json(
@@ -333,6 +374,21 @@ export async function POST(request: Request): Promise<Response> {
       .join("\n");
 
     const searches = message.content.filter((b) => b.type === "mcp_tool_use").length;
+
+    // Truncation at the ceiling produces half a JSON object, which then fails
+    // schema validation and reads like a prompt problem. It is not — say so.
+    if (message.stop_reason === "max_tokens") {
+      return json(
+        {
+          error:
+            "The slate was cut off — the model hit its output limit before " +
+            "finishing. Try a smaller slate size, or raise max_tokens.",
+          searches,
+          output_tokens: usage.output_tokens,
+        },
+        502,
+      );
+    }
 
     // When a slate comes back empty the useful question is what the search tools
     // said — credits exhausted, zero matches, or an error. Without this the
@@ -368,8 +424,13 @@ export async function POST(request: Request): Promise<Response> {
     } catch (err) {
       return json(
         {
-          error: "Could not read a slate out of the model response.",
+          error:
+            text.length && !text.trimEnd().endsWith("}")
+              ? "The slate was cut off mid-way — the model ran out of output " +
+                "room before finishing the JSON. Try a smaller slate size."
+              : "Could not read a slate out of the model response.",
           detail: err instanceof Error ? err.message : String(err),
+          output_tokens: usage.output_tokens,
           searches,
         },
         502,
@@ -390,15 +451,50 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    const meta = {
+      model: MODEL,
+      searches,
+      candidates: result.data.candidates.length,
+      stop_reason: message.stop_reason,
+      usage,
+      cost_usd: Math.round(cost * 10000) / 10000,
+      elapsed_ms: Date.now() - startedAt,
+    };
+
+    // Record the run for the History tab. Deliberately after everything that
+    // can fail the request and deliberately unable to fail it: this search has
+    // already cost real money and several minutes, so a storage outage must
+    // cost the recruiter a history entry, never the slate itself.
+    const id = newRunId();
+    const saved = await saveRun({
+      id,
+      created_at: new Date(startedAt).toISOString(),
+      // No name field on the gate, so there is nothing truthful to record yet.
+      operator: null,
+      criteria: {
+        jd: clampJd(jd),
+        location,
+        notes,
+        must_haves: mustHaves,
+        nice_to_haves: niceToHaves,
+        count,
+        feedback,
+        previous,
+      },
+      intake: result.data,
+      meta,
+    });
+
     return json(
       {
         intake: result.data,
         meta: {
-          searches,
-          candidates: result.data.candidates.length,
-          stop_reason: message.stop_reason,
-          usage,
-          cost_usd: Math.round(cost * 10000) / 10000,
+          ...meta,
+          run_id: saved ? id : null,
+          saved,
+          // Lets the UI tell "storage is down" apart from "storage was never
+          // set up", which are different problems with different fixes.
+          history_configured: storageConfigured(),
         },
       },
       200,

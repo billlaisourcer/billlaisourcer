@@ -240,8 +240,14 @@
     min-height: 0;
   }
   .pane__head {
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 6px 10px;
+    /* Three tabs plus the status chip overflow a narrow pane. Wrapping drops
+       the chip to its own line instead of clipping it. */
+    flex-wrap: wrap;
   }
+  .pane__head .chip { flex: 0 0 auto; }
+  .pane__head .tabs { flex: 1 1 auto; min-width: 0; }
   .pane__head h2 {
     margin: 0; font-size: 11px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.09em;
@@ -267,7 +273,7 @@
   .tabs { display: flex; gap: 2px; }
   .tab {
     font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 5px 10px; border: 1px solid transparent; border-radius: var(--r);
+    padding: 5px 8px; border: 1px solid transparent; border-radius: var(--r);
     background: none; color: var(--ink-faint); cursor: pointer; white-space: nowrap;
   }
   .tab.is-on { background: var(--surface); border-color: var(--hairline-hi); color: var(--ink); }
@@ -353,6 +359,40 @@
   }
   .reqs__cap { margin: 0; font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
   .reqs__cap.is-over { color: var(--score); }
+
+  /* History list. Entries live on the server, so they are the same from every machine. */
+  .hist { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .hist__empty {
+    margin: 0; font-family: var(--f-prose); font-size: 13px; line-height: 1.55;
+    color: var(--ink-faint);
+  }
+  .hist__item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 9px 10px; text-align: left; width: 100%;
+    background: var(--surface); border: 1px solid var(--hairline-hi);
+    border-radius: var(--r); cursor: pointer;
+  }
+  .hist__item:hover { border-color: var(--accent); }
+  .hist__item.is-on { border-color: var(--accent); background: var(--accent-soft); }
+  .hist__main { flex: 1 1 auto; min-width: 0; }
+  .hist__title {
+    font-family: var(--f-chrome); font-size: 13px; font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist__meta {
+    margin-top: 2px; font-family: var(--f-data); font-size: 11px; color: var(--ink-faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hist__del {
+    flex: 0 0 auto; padding: 2px 7px; font-size: 14px; line-height: 1.2;
+    background: none; border: 1px solid transparent; border-radius: var(--r);
+    color: var(--ink-faint); cursor: pointer;
+  }
+  .hist__del:hover { color: var(--crit); border-color: var(--hairline-hi); }
+  .hist__foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding-top: 2px;
+  }
 
   .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
   .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
@@ -544,6 +584,57 @@
     color: var(--ink); }
   .audit li { margin-bottom: 5px; }
 
+
+  /* The criteria that produced a stored slate, shown above the slate itself.
+     Mirrors the same block in submit.html. */
+  .hcrit {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0;
+    padding: 15px 18px; margin-bottom: 26px;
+  }
+  .hcrit__head {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    align-items: center; justify-content: space-between;
+  }
+  .hcrit__eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .hcrit__facts {
+    display: flex; flex-wrap: wrap; gap: 5px 22px; margin-top: 11px;
+    font-size: 13px; color: var(--ink-muted);
+  }
+  .hcrit__facts b {
+    color: var(--ink-faint); font-weight: 700; font-size: 10.5px;
+    letter-spacing: 0.07em; text-transform: uppercase; margin-right: 5px;
+  }
+  .hcrit__block { margin-top: 13px; }
+  .hcrit__label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px;
+  }
+  .hcrit__block ul {
+    margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 13.5px;
+  }
+  .hcrit__fb {
+    margin: 0; padding: 9px 12px; border-radius: var(--r);
+    background: var(--accent-soft); color: var(--ink);
+    font-family: var(--f-prose); font-size: 13.5px; line-height: 1.5;
+  }
+  .hcrit details > summary {
+    cursor: pointer; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .hcrit details > summary:hover { color: var(--accent); }
+  .hcrit pre {
+    margin: 9px 0 0; padding: 12px; max-height: 320px; overflow: auto;
+    background: var(--surface-sunk); border: 1px solid var(--hairline);
+    border-radius: var(--r);
+    font-family: var(--f-data); font-size: 11.5px; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-word; color: var(--ink-muted);
+  }
+
   .empty { color: var(--ink-faint); font-family: var(--f-prose); font-size: 15px;
     padding: 40px 0; max-width: 56ch; }
   .empty b { color: var(--ink); }
@@ -589,12 +680,15 @@
     </div>
   </div>
   <div class="masthead__actions">
+    <a class="btn" href="/submit">Profile Submission Builder</a>
     <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
       Source Direct <span class="arrow">&#8599;</span>
     </a>
     <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
     <span class="sep" aria-hidden="true"></span>
+    <button id="btn-new" type="button">New search</button>
     <button id="btn-example" type="button">Load example</button>
+    <button id="btn-csv" type="button">Export CSV</button>
     <button id="btn-copy" class="primary" type="button">Copy markdown</button>
   </div>
 </header>
@@ -604,12 +698,14 @@
     <div class="pane__head">
       <div class="tabs" role="tablist">
         <button class="tab is-on" id="tab-jd" role="tab" aria-selected="true" type="button">Job description</button>
-        <button class="tab" id="tab-json" role="tab" aria-selected="false" type="button">Intake JSON</button>
+        <button class="tab" id="tab-history" role="tab" aria-selected="false" type="button">History</button>
       </div>
       <span class="chip" id="status">ready</span>
     </div>
 
     <div class="mode" id="mode-jd">
+      <input class="field" id="jd-title"
+        placeholder="Role title (optional — overrides whatever the JD calls it)">
       <textarea id="jd" spellcheck="false" aria-label="Job description"
         placeholder="Paste the full job description here — responsibilities and requirements, not just the title."></textarea>
       <input class="field" id="jd-location" placeholder="Location / remote policy (optional but anchors the whole search)">
@@ -653,19 +749,18 @@
       </div>
     </div>
 
-    <div class="mode" id="mode-json" hidden>
+    <div class="mode" id="mode-history" hidden>
+      <div class="hist__foot">
+        <p class="hint" id="hist-note"></p>
+        <button id="btn-hist-clear" type="button" hidden>Clear all</button>
+      </div>
+      <div class="hist" id="hist-list"></div>
+    </div>
+
+    <!-- Not a tab any more. The scorecard is rendered from whatever this holds,
+         so it stays in the DOM as the render path; it is never shown. -->
+    <div id="json-holder" hidden>
       <textarea id="input" spellcheck="false" aria-label="Intake JSON"></textarea>
-      <details class="help">
-      <summary>Field reference</summary>
-      <ul>
-        <li><code>req</code> — title, company, location, seniority_band, must_haves[]</li>
-        <li><code>weights</code> — optional override, must total 100</li>
-        <li><code>candidates[].sources</code> — <code>{seekout, pin}</code>; both true is the confidence signal</li>
-        <li><code>candidates[].pin_status</code> — unreviewed · shortlisted · accepted · rejected · not_found</li>
-        <li><code>candidates[].band</code> — on_target · stretch_senior · stretch_junior · adjacent · probe</li>
-        <li><code>candidates[].scores.&lt;dim&gt;</code> — <code>{rating: 0–5 or null, evidence}</code>. Use <code>null</code> when there is no evidence; never guess a rating.</li>
-      </ul>
-      </details>
     </div>
 
     <div class="err" id="err" hidden></div>
@@ -1158,6 +1253,117 @@
     return h;
   }
 
+  /* ============================ CSV export ============================
+
+     A slate leaves this page for a spreadsheet — to sort, to filter, to paste
+     into a client's tracker. So one row per candidate, every scored dimension
+     in its own column alongside the evidence behind it, and nothing lost to
+     rendering. */
+
+  /**
+   * Quote a CSV field, and defuse it first.
+   *
+   * A leading =, +, - or @ makes Excel and Sheets treat the cell as a formula.
+   * Candidate names and evidence text come from a model reading arbitrary web
+   * profiles, so a value beginning with one of those characters is not
+   * hypothetical — and a spreadsheet that executes it is a real problem for
+   * whoever opens the file. Prefixing a single quote makes it inert and is
+   * what spreadsheet software expects; it renders as text and is invisible in
+   * the cell.
+   */
+  function csvCell(value) {
+    if (value === null || value === undefined) return "";
+    var s = String(value);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    // Escape quotes by doubling, then wrap. Wrapping unconditionally keeps
+    // commas, newlines and semicolons safe without inspecting for each.
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function csvRow(cells) { return cells.map(csvCell).join(","); }
+
+  function renderCSV(res) {
+    var req = res.req;
+    var dims = DIM_ORDER.filter(function (d) { return d in res.weights; });
+
+    var header = ["Rank", "Candidate", "Title", "Company", "Location", "Band",
+                  "Fit (0-100)", "Evidence %", "Confidence", "Sources",
+                  "Pipeline conflict", "LinkedIn", "Pin status", "Tests"];
+    dims.forEach(function (d) {
+      header.push((LABELS[d] || d) + " /5");
+      header.push((LABELS[d] || d) + " evidence");
+    });
+    header.push("Flags");
+
+    var lines = [csvRow(header)];
+
+    res.ranked.concat(res.provisional).forEach(function (r) {
+      var blocked = r.flags.some(function (f) {
+        return f.text.indexOf("BLOCKED") === 0 || f.text.indexOf("IN PIPELINE") === 0;
+      });
+      var cells = [
+        r.rank === null ? "held out" : r.rank,
+        r.name,
+        r.title || "",
+        r.company || "",
+        r.location || "",
+        BANDS[r.band] || r.band || "",
+        // Numbers unquoted-but-quoted is fine; spreadsheets parse "95.0" as a
+        // number. An unscored candidate gets an empty cell rather than a zero,
+        // which would sort as if they had failed.
+        r.composite === null ? "" : r.composite.toFixed(1),
+        r.evidence_coverage,
+        r.confidence,
+        r.source_label,
+        blocked ? "YES" : "",
+        r.linkedin || "",
+        r.pin_status || "",
+        r.calibration_question || ""
+      ];
+      dims.forEach(function (d) {
+        var e = (r.scores || {})[d] || {};
+        var rating = (e.rating === undefined) ? null : e.rating;
+        cells.push(rating === null ? "" : rating);
+        cells.push(e.evidence || "");
+      });
+      cells.push(r.flags.map(function (f) { return f.text; }).join(" | "));
+      lines.push(csvRow(cells));
+    });
+
+    return lines.join("\r\n");
+  }
+
+  /** Slugify for a filename: safe characters only, no runs of separators. */
+  function slug(text) {
+    return String(text || "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  }
+
+  function csvFilename(res) {
+    var req = res.req;
+    var stamp = new Date().toISOString().slice(0, 10);
+    var parts = [slug(req.title) || "slate", slug(req.company), stamp]
+      .filter(function (x) { return x; });
+    return parts.join("-") + ".csv";
+  }
+
+  function downloadCSV(res) {
+    // The BOM is what makes Excel read the file as UTF-8. Without it, any
+    // accented name in the slate arrives mangled.
+    var blob = new Blob(["\uFEFF" + renderCSV(res)],
+      { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = csvFilename(res);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Revoking immediately can cancel the download in some browsers; a tick
+    // is enough for the navigation to have started.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
   /* markdown export — mirrors the Python renderer so both agree */
   function renderMarkdown(res) {
     var req = res.req, out = [];
@@ -1241,9 +1447,9 @@
   var EXAMPLE = document.getElementById("example-data").textContent.trim();
   var lastResult = null;
 
-  var EMPTY = '<p class="empty">Paste an intake slate on the left, or <b>Load example</b> to see a ' +
-    'scored six-profile slate — including one candidate the req already rejected and one held ' +
-    "back for thin evidence.</p>";
+  var EMPTY = '<p class="empty">Paste a job description on the left and hit <b>Source &amp; score</b>, ' +
+    'or <b>Load example</b> to see a scored six-profile slate — including one candidate the req ' +
+    "already rejected and one held back for thin evidence.</p>";
 
   function setStatus(text, cls) {
     $status.textContent = text;
@@ -1296,6 +1502,22 @@
   document.getElementById("btn-example").addEventListener("click", function () {
     $in.value = EXAMPLE;
     run();
+  });
+
+  document.getElementById("btn-csv").addEventListener("click", function (ev) {
+    var btn = ev.currentTarget;
+    if (!lastResult) {
+      btn.textContent = "Nothing to export";
+      setTimeout(function () { btn.textContent = "Export CSV"; }, 1400);
+      return;
+    }
+    try {
+      downloadCSV(lastResult);
+      btn.textContent = "Downloaded";
+    } catch (e) {
+      btn.textContent = "Export failed";
+    }
+    setTimeout(function () { btn.textContent = "Export CSV"; }, 1600);
   });
 
   document.getElementById("btn-copy").addEventListener("click", function (ev) {
@@ -1373,26 +1595,286 @@
 
   /* ---------- tabs ---------- */
 
-  var $tabJd = document.getElementById("tab-jd");
-  var $tabJson = document.getElementById("tab-json");
-  var $modeJd = document.getElementById("mode-jd");
-  var $modeJson = document.getElementById("mode-json");
+  var TABS = ["jd", "history"];
 
   function selectTab(which) {
-    var jd = which === "jd";
-    $modeJd.hidden = !jd;
-    $modeJson.hidden = jd;
-    $tabJd.classList.toggle("is-on", jd);
-    $tabJson.classList.toggle("is-on", !jd);
-    $tabJd.setAttribute("aria-selected", String(jd));
-    $tabJson.setAttribute("aria-selected", String(!jd));
+    TABS.forEach(function (name) {
+      var on = name === which;
+      var tab = document.getElementById("tab-" + name);
+      document.getElementById("mode-" + name).hidden = !on;
+      tab.classList.toggle("is-on", on);
+      tab.setAttribute("aria-selected", String(on));
+    });
+    if (which === "history") renderHistory();
   }
-  $tabJd.addEventListener("click", function () { selectTab("jd"); });
-  $tabJson.addEventListener("click", function () { selectTab("json"); });
+  TABS.forEach(function (name) {
+    document.getElementById("tab-" + name)
+      .addEventListener("click", function () {
+        selectTab(name);
+        // Fetch on open rather than at load: the endpoint is authenticated and
+        // most sessions never look at history.
+        if (name === "history") historyRefresh();
+      });
+  });
+
+  /* ---------- history ----------
+     Slates live in a database on the server, not in this browser. That is the
+     whole point: a run made on the office machine has to be there from the
+     laptop too, and it has to survive a cleared browser. Storing them costs no
+     tokens and no credits — only an API call does — so the full result is kept
+     rather than just the inputs, and reopening a past run is free and instant
+     instead of a fresh $0.40+ search.
+
+     The endpoint is gated on APP_ACCESS_TOKEN, and the gate password doubles
+     as that token — one value, set in both places. */
+
+  function histFetch(path, options) {
+    var opts = options || {};
+    opts.headers = { authorization: "Bearer " + GATE_PASSWORD };
+    return fetch(path, opts);
+  }
+
+  /* A 401 here has exactly one cause worth naming: the gate password and the
+     server's APP_ACCESS_TOKEN have drifted apart. */
+  function histError(res, payload) {
+    if (res.status === 401) {
+      return "History rejected this password. The gate password and the server's " +
+        "APP_ACCESS_TOKEN must be the same value — check it in Vercel → Settings → " +
+        "Environment Variables.";
+    }
+    return (payload && payload.error) || ("History request failed with " + res.status + ".");
+  }
+
+  var $histList = document.getElementById("hist-list");
+  var $histNote = document.getElementById("hist-note");
+  var $histClear = document.getElementById("btn-hist-clear");
+  var histLoadedId = null;
+
+  /* The list the server last gave us, so rendering and deleting do not each
+     need a round trip. */
+  var histRows = [];
+  var histState = "idle";   // idle | loading | error
+  var histMessage = "";
+
+  async function historyRefresh() {
+    histState = "loading";
+    renderHistory();
+    try {
+      var res = await histFetch("/api/history?kind=run");
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        histRows = [];
+        histState = "error";
+        histMessage = histError(res, payload);
+      } else {
+        histRows = payload.runs || [];
+        histState = "idle";
+        histMessage = "";
+      }
+    } catch (err) {
+      histRows = [];
+      histState = "error";
+      histMessage = "Could not reach the history endpoint. " +
+        (err && err.message ? err.message : "");
+    }
+    renderHistory();
+  }
+
+  async function historyDelete(id) {
+    try {
+      var res = await histFetch("/api/history?kind=run&id=" + encodeURIComponent(id),
+        { method: "DELETE" });
+      if (!res.ok) {
+        var payload = await res.json().catch(function () { return null; });
+        histState = "error";
+        histMessage = histError(res, payload);
+        renderHistory();
+        return;
+      }
+      if (histLoadedId === id) histLoadedId = null;
+      // Drop it locally too rather than re-fetching, so the row disappears the
+      // moment it is clicked.
+      histRows = histRows.filter(function (e) { return e.id !== id; });
+      renderHistory();
+    } catch (err) {
+      histState = "error";
+      histMessage = "Could not reach the history endpoint.";
+      renderHistory();
+    }
+  }
+
+  async function historyClear() {
+    try {
+      var res = await histFetch("/api/history?kind=run&all=1", { method: "DELETE" });
+      if (!res.ok) {
+        var payload = await res.json().catch(function () { return null; });
+        histState = "error";
+        histMessage = histError(res, payload);
+      } else {
+        histRows = [];
+        histLoadedId = null;
+      }
+    } catch (err) {
+      histState = "error";
+      histMessage = "Could not reach the history endpoint.";
+    }
+    renderHistory();
+  }
+
+  function histWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+      " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function renderHistory() {
+    var list = histRows;
+    $histClear.hidden = list.length === 0;
+
+    if (histState === "loading" && !list.length) {
+      $histList.innerHTML = "";
+      $histNote.textContent = "Loading…";
+      return;
+    }
+
+    if (histState === "error") {
+      $histList.innerHTML = "";
+      $histNote.textContent = histMessage;
+      return;
+    }
+
+    if (!list.length) {
+      $histList.innerHTML = "";
+      $histNote.textContent = "No saved runs yet. Every completed slate is saved " +
+        "automatically and is visible from any machine you sign in from.";
+      return;
+    }
+
+    $histNote.textContent = list.length + " saved " + (list.length === 1 ? "run" : "runs") +
+      " — from any machine. Newest first, kept for 30 days.";
+
+    $histList.innerHTML = list.map(function (e) {
+      var bits = [histWhen(e.at), (e.n || 0) + " profiles"];
+      if (typeof e.cost_usd === "number") bits.push("$" + e.cost_usd.toFixed(2));
+      if (e.recal) bits.push("recalibration");
+      var where = e.company ? " @ " + e.company : "";
+      var title = e.title || "Untitled role";
+      return '<div class="hist__item' + (e.id === histLoadedId ? " is-on" : "") +
+        '" data-id="' + esc(e.id) + '" role="button" tabindex="0">' +
+          '<div class="hist__main">' +
+            '<div class="hist__title">' + esc(title + where) + "</div>" +
+            '<div class="hist__meta">' + esc(bits.join("  \u00B7  ")) + "</div>" +
+          "</div>" +
+          '<button class="hist__del" data-del="' + esc(e.id) + '" ' +
+            'title="Delete this run" aria-label="Delete this run">&times;</button>' +
+        "</div>";
+    }).join("");
+  }
+
+  /* The criteria that produced a stored slate, rendered above the slate. The
+     search results alone do not tell you what was asked for, and a slate you
+     cannot interpret six weeks later is not much of a record. */
+  function criteriaPanel(rec) {
+    var c = rec.criteria || {}, m = rec.meta || {};
+    var h = '<div class="hcrit">';
+    h += '<div class="hcrit__head"><span class="hcrit__eyebrow">From history · ' +
+      esc(histWhen(rec.created_at)) + "</span>" +
+      '<button id="btn-load-criteria" type="button">Load this criteria into the form</button></div>';
+
+    var facts = [];
+    if (c.location) facts.push(["Location", c.location]);
+    facts.push(["Slate asked for", String(c.count || "—")]);
+    facts.push(["Searches", String(m.searches || 0)]);
+    if (m.model) facts.push(["Model", m.model]);
+    if (typeof m.cost_usd === "number") facts.push(["Cost", "$" + m.cost_usd.toFixed(2)]);
+    if (typeof m.elapsed_ms === "number") facts.push(["Took", Math.round(m.elapsed_ms / 1000) + "s"]);
+    h += '<div class="hcrit__facts">' + facts.map(function (f) {
+      return "<span><b>" + esc(f[0]) + "</b>" + esc(f[1]) + "</span>";
+    }).join("") + "</div>";
+
+    if (c.notes) {
+      h += '<div class="hcrit__block"><div class="hcrit__label">Recruiter notes</div>' +
+        '<p class="hcrit__fb">' + esc(c.notes) + "</p></div>";
+    }
+    if (c.feedback) {
+      h += '<div class="hcrit__block"><div class="hcrit__label">Recalibration feedback</div>' +
+        '<p class="hcrit__fb">' + esc(c.feedback) + "</p></div>";
+    }
+    [["Must have", c.must_haves], ["Good to have", c.nice_to_haves]].forEach(function (pair) {
+      var items = pair[1] || [];
+      if (!items.length) return;
+      h += '<div class="hcrit__block"><div class="hcrit__label">' + esc(pair[0]) +
+        " (as stated)</div><ul>" +
+        items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+    });
+    if (c.jd) {
+      h += '<div class="hcrit__block"><details><summary>Job description</summary><pre>' +
+        esc(c.jd) + "</pre></details></div>";
+    }
+    return h + "</div>";
+  }
+
+  /** The record on screen, so "load into form" knows what to copy across. */
+  var openedRun = null;
+
+  async function historyLoad(id) {
+    setStatus("opening", "md");
+    try {
+      var res = await histFetch("/api/history?kind=run&id=" + encodeURIComponent(id));
+      var payload = await res.json().catch(function () { return null; });
+      if (!res.ok) {
+        showError(histError(res, payload));
+        setStatus("failed", "bad");
+        return;
+      }
+      var rec = payload.run;
+      openedRun = rec;
+      histLoadedId = id;
+      $err.hidden = true;
+      // Feeding the stored slate through the render path reuses the whole
+      // existing scorer — Copy markdown works on a historical run exactly as
+      // on a fresh one. No API call, no tokens, no credits.
+      $in.value = JSON.stringify(rec.intake, null, 2);
+      run();
+      $out.insertAdjacentHTML("afterbegin", criteriaPanel(rec));
+      renderHistory();
+    } catch (err) {
+      showError("Could not reach the history endpoint.");
+      setStatus("failed", "bad");
+    }
+  }
+
+  $histList.addEventListener("click", function (ev) {
+    var del = ev.target.closest("[data-del]");
+    if (del) {
+      ev.stopPropagation();
+      var delId = del.getAttribute("data-del");
+      historyDelete(delId);
+      return;
+    }
+    var item = ev.target.closest(".hist__item");
+    if (item) historyLoad(item.getAttribute("data-id"));
+  });
+
+  $histList.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var item = ev.target.closest(".hist__item");
+    if (!item) return;
+    ev.preventDefault();
+    historyLoad(item.getAttribute("data-id"));
+  });
+
+  $histClear.addEventListener("click", function () {
+    if (!confirm("Delete every saved run? They go from the server, so this " +
+      "removes them on every machine and cannot be undone.")) return;
+    historyClear();
+  });
 
   /* ---------- source & score ---------- */
 
   var $jd = document.getElementById("jd");
+  var $jdTitle = document.getElementById("jd-title");
   var $jdLocation = document.getElementById("jd-location");
   var $jdNotes = document.getElementById("jd-notes");
   var $runBtn = document.getElementById("btn-run");
@@ -1408,6 +1890,9 @@
   }
 
   $jd.addEventListener("input", function () { store("calibration-scorecard:jd", $jd.value); });
+  $jdTitle.addEventListener("input", function () {
+    store("calibration-scorecard:title", $jdTitle.value);
+  });
 
   /* ---------- recruiter-stated requirements ---------- */
 
@@ -1499,6 +1984,7 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           jd: jd,
+          title: $jdTitle.value.trim(),
           location: $jdLocation.value.trim(),
           notes: $jdNotes.value.trim(),
           must_haves: reqLines($reqMust).slice(0, MUST_CAP),
@@ -1544,6 +2030,13 @@
       $recalText.value = "";
 
       var meta = payload.meta || {};
+
+      // The server records the run inside /api/intake, after everything that
+      // could fail the request — a storage outage costs a history entry, never
+      // a slate already paid for. Here we only refresh the list.
+      histLoadedId = meta.run_id || null;
+      historyRefresh();
+
       var elapsed = Math.round((Date.now() - started) / 1000);
       clearInterval(ticker);
       $runBtn.disabled = false;
@@ -1553,9 +2046,15 @@
       var costBit = typeof meta.cost_usd === "number"
         ? " Cost <b>$" + meta.cost_usd.toFixed(2) + "</b>."
         : "";
+      // Say when a run did not make it into history. Silence would leave the
+      // recruiter believing a slate is recoverable when it is not.
+      var savedBit = meta.saved
+        ? " Saved to <b>History</b>."
+        : meta.history_configured === false
+          ? " <b>Not saved</b> — no history store is connected."
+          : " <b>Not saved</b> — the history store did not accept it.";
       $runHint.innerHTML = "Sourced <b>" + (meta.candidates || 0) + "</b> profiles across <b>" +
-        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>." + costBit +
-        " The Intake JSON tab has the raw slate.";
+        (meta.searches || 0) + "</b> searches in <b>" + elapsed + "s</b>." + costBit + savedBit;
     } catch (err) {
       showError("Could not reach the sourcing endpoint.\n" + (err && err.message ? err.message : err));
       finish("failed", "bad");
@@ -1574,6 +2073,74 @@
     runSearch(fb);
   });
 
+  /* ---------- new search ---------- */
+
+  // Clears the whole input side and the rendered slate. Deliberately does NOT
+  // touch History — a finished run is exactly what you want to keep when you
+  // start the next one.
+  document.getElementById("btn-new").addEventListener("click", function () {
+    if ($jd.value.trim() &&
+        !confirm("Clear the job description, title, filters and the current slate?\n\n" +
+                 "Saved runs in History are kept.")) {
+      return;
+    }
+
+    [$jd, $jdTitle, $jdLocation, $jdNotes, $reqMust, $reqNice, $recalText]
+      .forEach(function (el) { el.value = ""; });
+
+    ["jd", "title", "must", "nice", "input"].forEach(function (k) {
+      store("calibration-scorecard:" + k, "");
+    });
+
+    $in.value = "";
+    run();                 // renders the empty state
+
+    $recal.hidden = true;
+    lastSlate = [];
+    histLoadedId = null;
+    $reqs.open = false;
+    syncReqs();
+
+    $err.hidden = true;
+    selectTab("jd");
+    setStatus("ready");
+    $jdTitle.focus();
+  });
+
+  // The criteria panel is re-rendered on every open, so the button inside it
+  // cannot carry a listener of its own.
+  $out.addEventListener("click", function (ev) {
+    if (!ev.target.closest("#btn-load-criteria") || !openedRun) return;
+    var c = openedRun.criteria || {};
+
+    $jd.value = c.jd || "";
+    $jdLocation.value = c.location || "";
+    $jdNotes.value = c.notes || "";
+    $reqMust.value = (c.must_haves || []).join("\n");
+    $reqNice.value = (c.nice_to_haves || []).join("\n");
+    if (c.count) {
+      var sel = document.getElementById("jd-count");
+      if (sel) sel.value = String(c.count);
+    }
+    if ($jdTitle) $jdTitle.value = ((openedRun.intake || {}).req || {}).title || "";
+
+    store("calibration-scorecard:jd", $jd.value);
+    syncReqs();
+    if ($reqMust.value.trim() || $reqNice.value.trim()) $reqs.open = true;
+
+    // Seed the recalibration panel from this slate so a follow-up run knows
+    // who it has already shown.
+    lastSlate = ((openedRun.intake || {}).candidates || []).map(function (x) {
+      return x.name + " — " + (x.title || "?") + " @ " + (x.company || "?");
+    });
+    $recal.hidden = false;
+    $recalText.value = "";
+
+    selectTab("jd");
+    $jd.focus();
+    setStatus("criteria loaded", "ok");
+  });
+
   /* ---------- restore ---------- */
 
   var savedJd = recall("calibration-scorecard:jd");
@@ -1586,10 +2153,14 @@
   // user sees their list without a first-timer losing the run button off-screen.
   if ($reqMust.value.trim() || $reqNice.value.trim()) $reqs.open = true;
 
+  $jdTitle.value = recall("calibration-scorecard:title") || "";
+
   var saved = recall("calibration-scorecard:input");
-  $in.value = saved || EXAMPLE;
+  var firstVisit = saved === null;
+  $in.value = firstVisit ? EXAMPLE : saved;
   run();
-  setStatus(savedJd ? "ready" : "showing example");
+  if (firstVisit) setStatus("showing example");
+  else if (savedJd) setStatus("ready");
 })();
 </script>
 </body>
