@@ -680,7 +680,7 @@
     </div>
   </div>
   <div class="masthead__actions">
-    <a class="btn" href="/submit">Submission Builder</a>
+    <a class="btn" href="/submit">Profile Submission Builder</a>
     <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
       Source Direct <span class="arrow">&#8599;</span>
     </a>
@@ -688,6 +688,7 @@
     <span class="sep" aria-hidden="true"></span>
     <button id="btn-new" type="button">New search</button>
     <button id="btn-example" type="button">Load example</button>
+    <button id="btn-csv" type="button">Export CSV</button>
     <button id="btn-copy" class="primary" type="button">Copy markdown</button>
   </div>
 </header>
@@ -1252,6 +1253,117 @@
     return h;
   }
 
+  /* ============================ CSV export ============================
+
+     A slate leaves this page for a spreadsheet — to sort, to filter, to paste
+     into a client's tracker. So one row per candidate, every scored dimension
+     in its own column alongside the evidence behind it, and nothing lost to
+     rendering. */
+
+  /**
+   * Quote a CSV field, and defuse it first.
+   *
+   * A leading =, +, - or @ makes Excel and Sheets treat the cell as a formula.
+   * Candidate names and evidence text come from a model reading arbitrary web
+   * profiles, so a value beginning with one of those characters is not
+   * hypothetical — and a spreadsheet that executes it is a real problem for
+   * whoever opens the file. Prefixing a single quote makes it inert and is
+   * what spreadsheet software expects; it renders as text and is invisible in
+   * the cell.
+   */
+  function csvCell(value) {
+    if (value === null || value === undefined) return "";
+    var s = String(value);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    // Escape quotes by doubling, then wrap. Wrapping unconditionally keeps
+    // commas, newlines and semicolons safe without inspecting for each.
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function csvRow(cells) { return cells.map(csvCell).join(","); }
+
+  function renderCSV(res) {
+    var req = res.req;
+    var dims = DIM_ORDER.filter(function (d) { return d in res.weights; });
+
+    var header = ["Rank", "Candidate", "Title", "Company", "Location", "Band",
+                  "Fit (0-100)", "Evidence %", "Confidence", "Sources",
+                  "Pipeline conflict", "LinkedIn", "Pin status", "Tests"];
+    dims.forEach(function (d) {
+      header.push((LABELS[d] || d) + " /5");
+      header.push((LABELS[d] || d) + " evidence");
+    });
+    header.push("Flags");
+
+    var lines = [csvRow(header)];
+
+    res.ranked.concat(res.provisional).forEach(function (r) {
+      var blocked = r.flags.some(function (f) {
+        return f.text.indexOf("BLOCKED") === 0 || f.text.indexOf("IN PIPELINE") === 0;
+      });
+      var cells = [
+        r.rank === null ? "held out" : r.rank,
+        r.name,
+        r.title || "",
+        r.company || "",
+        r.location || "",
+        BANDS[r.band] || r.band || "",
+        // Numbers unquoted-but-quoted is fine; spreadsheets parse "95.0" as a
+        // number. An unscored candidate gets an empty cell rather than a zero,
+        // which would sort as if they had failed.
+        r.composite === null ? "" : r.composite.toFixed(1),
+        r.evidence_coverage,
+        r.confidence,
+        r.source_label,
+        blocked ? "YES" : "",
+        r.linkedin || "",
+        r.pin_status || "",
+        r.calibration_question || ""
+      ];
+      dims.forEach(function (d) {
+        var e = (r.scores || {})[d] || {};
+        var rating = (e.rating === undefined) ? null : e.rating;
+        cells.push(rating === null ? "" : rating);
+        cells.push(e.evidence || "");
+      });
+      cells.push(r.flags.map(function (f) { return f.text; }).join(" | "));
+      lines.push(csvRow(cells));
+    });
+
+    return lines.join("\r\n");
+  }
+
+  /** Slugify for a filename: safe characters only, no runs of separators. */
+  function slug(text) {
+    return String(text || "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  }
+
+  function csvFilename(res) {
+    var req = res.req;
+    var stamp = new Date().toISOString().slice(0, 10);
+    var parts = [slug(req.title) || "slate", slug(req.company), stamp]
+      .filter(function (x) { return x; });
+    return parts.join("-") + ".csv";
+  }
+
+  function downloadCSV(res) {
+    // The BOM is what makes Excel read the file as UTF-8. Without it, any
+    // accented name in the slate arrives mangled.
+    var blob = new Blob(["\uFEFF" + renderCSV(res)],
+      { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = csvFilename(res);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Revoking immediately can cancel the download in some browsers; a tick
+    // is enough for the navigation to have started.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
   /* markdown export — mirrors the Python renderer so both agree */
   function renderMarkdown(res) {
     var req = res.req, out = [];
@@ -1390,6 +1502,22 @@
   document.getElementById("btn-example").addEventListener("click", function () {
     $in.value = EXAMPLE;
     run();
+  });
+
+  document.getElementById("btn-csv").addEventListener("click", function (ev) {
+    var btn = ev.currentTarget;
+    if (!lastResult) {
+      btn.textContent = "Nothing to export";
+      setTimeout(function () { btn.textContent = "Export CSV"; }, 1400);
+      return;
+    }
+    try {
+      downloadCSV(lastResult);
+      btn.textContent = "Downloaded";
+    } catch (e) {
+      btn.textContent = "Export failed";
+    }
+    setTimeout(function () { btn.textContent = "Export CSV"; }, 1600);
   });
 
   document.getElementById("btn-copy").addEventListener("click", function (ev) {

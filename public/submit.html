@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Turn screening-call notes and a resume into a recruiter submission — reason for leaving, background, AI enablement, compensation and fit, with the gaps called out.">
-<title>Candidate Submission Builder</title>
+<title>Profile Submission Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
@@ -427,8 +427,116 @@
   ul.plain.warn li { color: var(--ink); }
 
   .exports { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .exports__opt {
+    display: flex; align-items: flex-start; gap: 7px; margin-top: 10px;
+    font-family: var(--f-prose); font-size: 12.5px; line-height: 1.45;
+    color: var(--ink-muted); max-width: 70ch; cursor: pointer;
+  }
+  .exports__opt input { margin-top: 2px; flex: 0 0 auto; }
 
   .scroll { overflow-x: auto; }
+
+  /* ============================ print / PDF ============================
+
+     "Export PDF" is the browser's own print-to-PDF. That gives real selectable
+     text, real page breaks and embedded fonts, where a canvas-based JS library
+     would produce a fuzzy picture of the screen at several times the file size.
+
+     Two things this has to get right. First, colour: the app follows the
+     viewer's dark theme, and printing white-on-dark yields a blank page,
+     because browsers drop backgrounds but keep text colour. So the print
+     rules restate a light palette unconditionally. Second, audience: the
+     gaps checklist and the provenance labels are the recruiter's working
+     notes. A client should not receive a list of what nobody asked, so those
+     are excluded unless the recruiter opts in. */
+
+  .print-head { display: none; }
+
+  @media print {
+    /* Force the light palette regardless of the viewer's theme. */
+    :root, :root[data-theme="dark"] {
+      --ground: #FFFFFF; --surface: #FFFFFF; --surface-sunk: #FFFFFF;
+      --ink: #111111; --ink-muted: #444444; --ink-faint: #666666;
+      --hairline: #CCCCCC; --hairline-hi: #999999;
+      --accent: #1A4FA0; --accent-soft: #FFFFFF;
+      --score: #6B4A00; --score-bar: #6B4A00;
+      --good: #1C5F44; --good-soft: #FFFFFF;
+      --warn: #6B4A00; --warn-soft: #FFFFFF;
+      --crit: #96271B; --crit-soft: #FFFFFF;
+    }
+
+    @page { margin: 16mm 14mm; }
+
+    html, body { background: #FFFFFF; color: #111111; font-size: 11pt; }
+
+    /* The app chrome has no place in the document. */
+    .gate, .masthead, .pane--in, .exports, .print-hide { display: none !important; }
+
+    .shell { display: block; }
+    .pane--out { padding: 0; }
+    .doc { max-width: none; margin: 0; }
+
+    /* A proper document header, printed once at the top. */
+    .print-head {
+      display: block; margin-bottom: 14pt;
+      padding-bottom: 8pt; border-bottom: 1.5pt solid var(--accent);
+    }
+    .print-head__brand {
+      font-size: 8.5pt; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .print-head__line {
+      margin-top: 2pt; font-family: var(--f-prose);
+      font-size: 9.5pt; color: var(--ink-muted);
+    }
+
+    /* Internal-only material: the recruiter's checklist and the provenance
+       labels. Shown only when the recruiter ticks "include internal notes". */
+    .internal, .src, .internal-inline { display: none; }
+    body.print-internal .internal { display: block; }
+    body.print-internal .src { display: inline; }
+    body.print-internal .internal-inline { display: inline-block; }
+
+    a { color: var(--ink); text-decoration: none; }
+    /* Spell out link targets, since a printed page cannot be clicked. */
+    .card__links a::after, .chip a::after { content: " (" attr(href) ")"; font-size: 8pt; }
+
+    .subhead h2 { font-size: 20pt; }
+    h3.sec {
+      font-size: 8.5pt; margin: 16pt 0 7pt; padding-bottom: 4pt;
+      break-after: avoid; page-break-after: avoid;
+    }
+    .lead {
+      font-size: 11.5pt; padding: 10pt 12pt;
+      border: 0.75pt solid var(--hairline); border-left: 2pt solid var(--accent);
+      break-inside: avoid; page-break-inside: avoid;
+    }
+
+    /* Nothing should be split down the middle of a thought. */
+    .fact, .ai, .gaps, .hcrit, table.mh tr, ul.plain li, ul.ev li {
+      break-inside: avoid; page-break-inside: avoid;
+    }
+
+    .facts {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      border: 0.75pt solid var(--hairline); background: none;
+    }
+    .fact { border: 0.5pt solid var(--hairline); padding: 7pt 9pt; }
+    .fact__k { font-size: 7.5pt; }
+    .fact__v { font-size: 10pt; }
+    .fact__q { font-size: 9pt; }
+
+    .chip { border: 0.5pt solid var(--hairline-hi); background: none !important; }
+    .gaps { border: 0.75pt solid var(--warn); background: none; padding: 9pt 12pt; }
+    .ai { border: 0.75pt solid var(--hairline); padding: 10pt 12pt; }
+    table.mh { font-size: 9.5pt; }
+    table.mh th { border-bottom: 0.75pt solid var(--hairline-hi); }
+    table.mh td { border-bottom: 0.5pt solid var(--hairline); }
+
+    .dots i { border: 0.4pt solid var(--ink-faint); }
+    .dots i.on { background: var(--ink); }
+  }
+
 </style>
 </head>
 <body>
@@ -444,7 +552,7 @@
       </svg>
       <div>
         <div class="brand__name">SD Talent</div>
-        <h2 class="gate__title">Candidate Submission Builder</h2>
+        <h2 class="gate__title">Profile Submission Builder</h2>
       </div>
     </div>
     <p class="gate__sub">Enter the access password to continue.</p>
@@ -466,7 +574,7 @@
     </svg>
     <div>
       <div class="brand__name">SD Talent</div>
-      <h1>Candidate Submission Builder</h1>
+      <h1>Profile Submission Builder</h1>
       <p>Drop the resume, paste your call notes, and get the submission — reason for leaving, background, AI enablement, comp and fit, with the questions you still need to ask called out.</p>
     </div>
   </div>
@@ -553,6 +661,10 @@
   </section>
 
   <section class="pane pane--out">
+    <div class="print-head" id="print-head">
+      <div class="print-head__brand">SD Talent</div>
+      <div class="print-head__line" id="print-head-line"></div>
+    </div>
     <div class="doc" id="out"></div>
   </section>
 </main>
@@ -657,7 +769,9 @@
     (s.background.domains || []).slice(0, 4).forEach(function (d) {
       h += '<span class="chip">' + esc(d) + "</span>";
     });
-    h += '<span class="chip ' + (gaps.length ? "md" : "ok") + '">' +
+    // Internal too: in a client-facing PDF this chip would point at a list
+    // that has been removed, which is worse than not mentioning it.
+    h += '<span class="chip internal-inline ' + (gaps.length ? "md" : "ok") + '">' +
       (gaps.length ? gaps.length + " open question" + (gaps.length === 1 ? "" : "s") : "Fully covered") +
       "</span>";
     if (c.linkedin) {
@@ -668,6 +782,9 @@
 
     h += '<div class="lead">' + esc(s.recruiter_summary) + "</div>";
 
+    // Marked internal: a client should not receive a list of what nobody
+    // thought to ask. The print rules drop it unless the recruiter opts in.
+    h += '<div class="internal">';
     h += '<h3 class="sec">Still to ask <span class="n">' + gaps.length + "</span></h3>";
     if (gaps.length) {
       h += '<div class="gaps"><h4>Not established on the call</h4><ul>' +
@@ -677,6 +794,7 @@
       h += '<div class="gaps none"><h4>Nothing outstanding</h4>' +
         "<p>Every field a screening call is expected to cover came back with an answer.</p></div>";
     }
+    h += "</div>";
 
     h += '<h3 class="sec">The move</h3><div class="facts">';
     h += fact("Reason for leaving", s.reason_for_leaving);
@@ -753,15 +871,23 @@
         "</ul></div>";
     }
 
-    h += '<h3 class="sec">Send it</h3>';
+    // print-hide, not just on the buttons: otherwise the PDF ends with a
+    // "Send it" heading and nothing beneath it.
+    h += '<h3 class="sec print-hide">Send it</h3>';
     h += '<div class="exports">' +
-      '<button class="primary" data-copy="md">Copy markdown</button>' +
+      '<button class="primary" id="btn-pdf">Export PDF</button>' +
+      '<button data-copy="md">Copy markdown</button>' +
       '<button data-copy="txt">Copy plain text</button>' +
       '<button data-copy="email">Copy as email</button>' +
       '<a class="btn" id="mailto" href="#">Open mail draft</a>' +
       "</div>";
-    h += '<p class="hint" style="margin-top:8px">The mail draft opens with the subject filled ' +
-      "in &mdash; paste the body, which is too long to survive a mailto link. " +
+    h += '<label class="exports__opt print-hide"><input type="checkbox" id="pdf-internal"> ' +
+      "Include internal notes in the PDF &mdash; the still-to-ask list and the " +
+      "call/resume source labels. Leave off for anything going to a client.</label>";
+    h += '<p class="hint print-hide" style="margin-top:8px">Export PDF opens your print ' +
+      "dialog &mdash; choose <b>Save as PDF</b> as the destination. The mail draft opens " +
+      "with the subject filled in; paste the body, which is too long to survive a " +
+      "mailto link. " +
       (typeof m.cost_usd === "number" ? "This one cost <b>$" + m.cost_usd.toFixed(2) + "</b>." : "") +
       "</p>";
 
@@ -1242,6 +1368,31 @@
 
   function wireExports() {
     if (!current) return;
+
+    var pdfBtn = document.getElementById("btn-pdf");
+    var internal = document.getElementById("pdf-internal");
+    if (pdfBtn) {
+      pdfBtn.addEventListener("click", function () {
+        var c = current.submission.candidate, ctx = current.context || {};
+        // The printed document needs its own header — the on-screen masthead
+        // is app chrome and is dropped.
+        var bits = [c.name];
+        if (ctx.role) bits.push(ctx.role);
+        if (ctx.client) bits.push(ctx.client);
+        bits.push(new Date().toLocaleDateString(undefined,
+          { year: "numeric", month: "long", day: "numeric" }));
+        document.getElementById("print-head-line").textContent = bits.join("  ·  ");
+
+        document.body.classList.toggle("print-internal", Boolean(internal && internal.checked));
+        // The tab title becomes the suggested PDF filename in most browsers.
+        var previousTitle = document.title;
+        document.title = [c.name, ctx.role, ctx.client]
+          .filter(Boolean).join(" - ") || "Candidate submission";
+        window.print();
+        document.title = previousTitle;
+      });
+    }
+
     var link = document.getElementById("mailto");
     if (link) {
       // Subject only. A full submission runs to several KB and mail clients
