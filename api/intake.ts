@@ -5,6 +5,7 @@ import Anthropic, {
   RateLimitError,
 } from "@anthropic-ai/sdk";
 import { IntakeSchema, extractJson } from "../lib/intake-schema.js";
+import { clampJd, newRunId, saveRun, storageConfigured } from "../lib/history.js";
 import {
   BAND_TARGETS,
   DEFAULT_WEIGHTS,
@@ -165,6 +166,7 @@ function json(body: unknown, status: number): Response {
  * Response. Naming the method also gives us a free 405 on everything else.
  */
 export async function POST(request: Request): Promise<Response> {
+  const startedAt = Date.now();
   // NOTE: this endpoint is intentionally open. It was gated on APP_ACCESS_TOKEN;
   // the owner removed the gate deliberately. Anyone who knows the URL can spend
   // the configured Super Carl credits and Anthropic tokens. To restore the gate,
@@ -449,16 +451,50 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    const meta = {
+      model: MODEL,
+      searches,
+      candidates: result.data.candidates.length,
+      stop_reason: message.stop_reason,
+      usage,
+      cost_usd: Math.round(cost * 10000) / 10000,
+      elapsed_ms: Date.now() - startedAt,
+    };
+
+    // Record the run for the History tab. Deliberately after everything that
+    // can fail the request and deliberately unable to fail it: this search has
+    // already cost real money and several minutes, so a storage outage must
+    // cost the recruiter a history entry, never the slate itself.
+    const id = newRunId();
+    const saved = await saveRun({
+      id,
+      created_at: new Date(startedAt).toISOString(),
+      // No name field on the gate, so there is nothing truthful to record yet.
+      operator: null,
+      criteria: {
+        jd: clampJd(jd),
+        location,
+        notes,
+        must_haves: mustHaves,
+        nice_to_haves: niceToHaves,
+        count,
+        feedback,
+        previous,
+      },
+      intake: result.data,
+      meta,
+    });
+
     return json(
       {
         intake: result.data,
         meta: {
-          model: MODEL,
-          searches,
-          candidates: result.data.candidates.length,
-          stop_reason: message.stop_reason,
-          usage,
-          cost_usd: Math.round(cost * 10000) / 10000,
+          ...meta,
+          run_id: saved ? id : null,
+          saved,
+          // Lets the UI tell "storage is down" apart from "storage was never
+          // set up", which are different problems with different fixes.
+          history_configured: storageConfigured(),
         },
       },
       200,
