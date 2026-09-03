@@ -112,6 +112,13 @@ early 2023") and, when it matters, in client_fit.concerns.
   Lead with why this person is worth their time. It must be supportable entirely by
   fields above it; do not introduce a claim here that appears nowhere else.
 
+## List lengths
+
+Keep the lists short enough to read: at most 8 domains, 6 highlights, 6 AI
+evidence items, 5 concerns. Pick the strongest, do not pad to the limit, and do
+not stretch to reach it — three real concerns beat five with two invented. Going
+over is not fatal; the extras are simply dropped, so put the best first.
+
 ## Must-haves
 
 When the request carries the role's stated must-haves, assess each one and return
