@@ -584,6 +584,8 @@
       Source Direct <span class="arrow">&#8599;</span>
     </a>
     <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="btn-new" type="button">New submission</button>
   </div>
 </header>
 
@@ -1503,6 +1505,39 @@
   });
 
   /* ---------- restore ---------- */
+
+  /* ---------- new submission ---------- */
+
+  // Clears the whole input side and the built document. Leaves History alone:
+  // a finished submission is exactly what you want to keep when starting the
+  // next one. Confirms only when the notes have content, since those are the
+  // expensive thing to retype.
+  document.getElementById("btn-new").addEventListener("click", function () {
+    if ($notes.value.trim() &&
+        !confirm("Clear the call notes, resume, role details and the built " +
+                 "submission?\n\nSaved submissions in History are kept.")) {
+      return;
+    }
+
+    [$client, $role, $notes, $resumeText, $jd, $must]
+      .forEach(function (el) { el.value = ""; });
+    clearFile();
+    $runPick.selectedIndex = 0;
+
+    ["sub:client", "sub:role", "sub:notes"].forEach(function (k) { store(k, ""); });
+
+    current = null;
+    $out.innerHTML = EMPTY;
+    $err.hidden = true;
+
+    document.getElementById("grp-paste").open = false;
+    document.getElementById("grp-role").open = false;
+    syncTags();
+
+    selectTab("build");
+    setStatus("ready");
+    $client.focus();
+  });
 
   $notes.value = recall("sub:notes") || "";
   $client.value = recall("sub:client") || "";
