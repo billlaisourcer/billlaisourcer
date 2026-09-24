@@ -906,8 +906,13 @@
      Carl, which costs credits, so this is a click rather than part of the map. */
 
   var lastPeople = null;
+  // Each pull costs real money. Without this, a slow response reads as a dead
+  // button and the clicks stack up — six fired for one cell in live use.
+  var pulling = false;
 
   async function pullPeople(td) {
+    if (pulling) return;
+    pulling = true;
     var co = td.getAttribute("data-co");
     var loc = td.getAttribute("data-loc");
     var title = td.getAttribute("data-title");
@@ -923,7 +928,8 @@
         (loc ? " in " + esc(loc) : "") + " \u2014 <b>" +
         Math.round((Date.now() - started) / 1000) + "s</b>.</p>";
     }, 1000);
-    $p.innerHTML = '<p class="hint">Pulling the list\u2026</p>';
+    $p.innerHTML = '<p class="hint">Pulling the list\u2026 this takes about 20 seconds.</p>';
+    document.body.style.cursor = "progress";
     $p.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
     try {
@@ -934,6 +940,8 @@
       });
       var payload = await res.json().catch(function () { return null; });
       clearInterval(tick);
+      pulling = false;
+      document.body.style.cursor = "";
       if (!res.ok || !payload) {
         $p.innerHTML = '<p class="err">' +
           esc((payload && payload.error) || ("List failed (" + res.status + ").")) + "</p>";
@@ -944,6 +952,8 @@
       renderPeople(payload);
     } catch (e) {
       clearInterval(tick);
+      pulling = false;
+      document.body.style.cursor = "";
       $p.innerHTML = '<p class="err">Could not reach the list endpoint.</p>';
     }
   }
@@ -967,12 +977,20 @@
         : "Showing " + people.length + ". ") +
       (typeof x.cost_usd === "number" ? "Cost <b>$" + x.cost_usd.toFixed(2) + "</b>." : "") + "</p>";
 
+    if (x.location_dropped) {
+      h += '<p class="partial"><b>Nobody matched in ' + esc(x._loc || "that location") +
+        ", so the location filter was dropped and these are from everywhere.</b> " +
+        "Super Carl's location filter is strict and misses people whose location only " +
+        "appears in free text, which hits remote-first employers hardest. Check the " +
+        "Location column before you work the list.</p>";
+    }
     if (x.note) h += '<p class="partial">' + esc(x.note) + "</p>";
 
     if (!people.length) {
-      h += '<p class="empty">Super Carl found nobody there with that exact title, ' +
-        "even though Apollo counted some. The two index different people and read " +
-        "titles differently \u2014 try a broader title.</p>";
+      h += '<p class="empty">Super Carl found nobody \u2014 there is no list to copy, ' +
+        "which is why the CSV button is not here. Apollo counted people in this cell, " +
+        "so the two indexes disagree. The usual cause is the title string: try a " +
+        "broader or differently worded one before assuming the cell is empty.</p>";
       $p.innerHTML = h;
       return;
     }

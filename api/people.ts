@@ -29,9 +29,16 @@ const MAX_LIMIT = 25;
 
 const SYSTEM = `You build a prospecting list of salespeople from Super Carl.
 
-Make exactly ONE ${MCP_NAME} people_search call and report its rows. Do not
-search twice, and do not go looking for more people if the first call returns
-fewer than asked.
+Make ONE ${MCP_NAME} people_search call and report its rows.
+
+The single exception: if a location was given and that call returns ZERO
+people, make exactly one more call with the location filter removed and
+everything else identical, then set "location_dropped": true. Super Carl's
+structured location filter is strict and suppresses its own profile-text
+fallback, so a remote-heavy employer can return nothing for a city while
+having hundreds of people overall. An empty list is far less useful to a
+recruiter than the same list unfiltered and labelled. Never retry for any
+other reason, and never widen the company or the titles.
 
 Shape the call like this:
 
@@ -73,6 +80,7 @@ JSON only. No prose, no code fence:
   ],
   "total_matching": 0,
   "truncated": false,
+  "location_dropped": false,
   "note": "one sentence if the search was degraded or the filters were altered, else empty"
 }`;
 
@@ -177,7 +185,27 @@ export async function POST(request: Request): Promise<Response> {
         usage.cache_creation_input_tokens * rate.in * 1.25 +
         usage.output_tokens * rate.out) /
       1_000_000;
-    console.log("people", JSON.stringify({ model: MODEL, company, limit, ...usage, cost_usd: cost }));
+    // Outcome as well as spend: the first live failure here was invisible in
+    // the logs because only token usage was being recorded.
+    const outcome = (() => {
+      try {
+        const t = message.content
+          .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+          .map((b) => b.text).join("\n");
+        const o = extractJson(t) as { people?: unknown[]; total_matching?: number; location_dropped?: boolean };
+        return {
+          returned: Array.isArray(o.people) ? o.people.length : -1,
+          total_matching: o.total_matching ?? null,
+          location_dropped: o.location_dropped ?? false,
+        };
+      } catch {
+        return { returned: -1, total_matching: null, location_dropped: false };
+      }
+    })();
+    console.log(
+      "people",
+      JSON.stringify({ model: MODEL, company, location: location || null, limit, ...outcome, ...usage, cost_usd: cost }),
+    );
 
     if (message.stop_reason === "max_tokens") {
       return json({ error: "The list was cut off before it finished. Ask for fewer rows." }, 502);
