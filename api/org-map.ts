@@ -248,7 +248,18 @@ export async function POST(request: Request): Promise<Response> {
 
   console.log(
     "org-map",
-    JSON.stringify({ companies: companies.length, locations: rowLocations.length, titles: titles.length, cells, failed, orgCreditsSpent }),
+    // Whether the grid actually had numbers in it decides whether "it does not
+    // work" means empty results or an undiscoverable click.
+    JSON.stringify({
+      companies: companies.length,
+      locations: rowLocations.length,
+      titles: titles.length,
+      cells,
+      nonZeroCells: [...counts.values()].filter((v) => typeof v === "number" && v > 0).length,
+      maxCell: Math.max(0, ...[...counts.values()].map((v) => (typeof v === "number" ? v : 0))),
+      failed,
+      orgCreditsSpent,
+    }),
   );
 
   return json(

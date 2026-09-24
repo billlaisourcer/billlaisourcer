@@ -559,8 +559,20 @@
   td.tot, th.tot { border-left: 1px solid var(--hairline-hi); font-weight: 600; }
 
   /* ---------- people list ---------- */
-  table.grid td.cell { cursor: pointer; }
+  /* A number that does something has to look like it does something. Shipping
+     these with only a cursor change meant nobody found the people behind them. */
+  table.grid td.cell { cursor: pointer; position: relative; }
+  table.grid td.cell .n { border-bottom: 1px dashed var(--accent); }
   table.grid td.cell:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+  table.grid td.cell:hover .n { color: var(--accent); }
+  .howto {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--f-prose); font-size: 13px; line-height: 1.5;
+    color: var(--ink); background: var(--accent-soft);
+    border: 1px solid var(--accent); border-radius: var(--r);
+    padding: 10px 13px; margin-bottom: 16px;
+  }
+  .howto b { font-weight: 600; }
   table.grid td.cell.is-on { outline: 2px solid var(--accent); outline-offset: -2px; }
   .plist { margin-top: 26px; }
   .plist h3 { font-family: var(--f-display); font-size: 19px; margin: 0 0 3px; }
@@ -835,6 +847,15 @@
         "Try the domain instead of the name.</p>";
     }
 
+    var anyClickable = rows.some(function (row) {
+      return row.cells.some(function (c) { return typeof c.apollo === "number" && c.apollo > 0; });
+    });
+    if (anyClickable) {
+      h += '<p class="howto"><span aria-hidden="true">\u2192</span> <span><b>Click any number</b> ' +
+        "to pull the people behind it \u2014 names, locations and LinkedIn profiles, " +
+        "ready to copy as CSV.</span></p>";
+    }
+
     h += '<div class="gridwrap"><table class="grid"><thead><tr>' +
       '<th class="k">Company</th>' +
       titles.map(function (t) { return "<th>" + esc(t) + "</th>"; }).join("") +
@@ -876,6 +897,14 @@
             (row.resolvedNames.length > 8 ? " and " + (row.resolvedNames.length - 8) + " more" : "");
         }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join("<br>") +
         "<br>Use the domain to count one company only.</p>";
+    }
+
+    if (!anyClickable) {
+      h += '<p class="partial" style="margin-top:16px"><b>Every cell is zero, so there is ' +
+        "nobody to pull.</b> That is almost always the title string rather than the company: " +
+        "Apollo matches titles literally. Try &ldquo;Account Executive&rdquo; rather than " +
+        "&ldquo;AE&rdquo;, drop a qualifier like &ldquo;Enterprise&rdquo;, or widen the " +
+        "location.</p>";
     }
 
     if (r.failed) {
