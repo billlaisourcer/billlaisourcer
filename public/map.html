@@ -912,8 +912,20 @@
         " cell(s) failed to load and show as — rather than zero.</p>";
     }
 
-    h += '<div class="exports"><button class="primary" id="btn-csv" type="button">Export to CSV</button>' +
-      '<button id="btn-md" type="button">Copy markdown</button></div>';
+    // Two exports that produce very different files must not share a label.
+    // The counts grid has no names in it; that has to be on the button.
+    var cellCount = rows.reduce(function (n, row) {
+      return n + row.cells.filter(function (c) { return typeof c.apollo === "number" && c.apollo > 0; }).length;
+    }, 0);
+    h += '<div class="exports">' +
+      (cellCount
+        ? '<button class="primary" id="btn-all" type="button">Export all people (' +
+          cellCount + (cellCount === 1 ? " cell" : " cells") + ")</button>"
+        : "") +
+      '<button id="btn-csv" type="button">Export counts only</button>' +
+      '<button id="btn-md" type="button">Copy markdown</button></div>' +
+      '<p class="hint" style="margin-top:8px">Counts only is the grid above \u2014 numbers, no names. ' +
+      "Export all people pulls the names and LinkedIn profiles from every cell.</p>";
     h += '<p class="hint" style="margin-top:12px">Counts are Apollo’s indexed people, which is a ' +
       "sample of reality rather than the company’s real headcount. Compare them to each other, " +
       "not to a payroll." + (r.orgCreditsSpent ? " Resolving names cost " + r.orgCreditsSpent +
@@ -926,8 +938,10 @@
       td.addEventListener("click", function () { pullPeople(td); });
     });
     document.getElementById("btn-csv").addEventListener("click", function () {
-      download(csv(r), "org-map-" + stamp() + ".csv", this);
+      download(csv(r), "org-map-counts-" + stamp() + ".csv", this);
     });
+    var $all = document.getElementById("btn-all");
+    if ($all) $all.addEventListener("click", function () { exportAllPeople(r, this); });
     document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
   }
 
@@ -1061,6 +1075,123 @@
     document.getElementById("btn-pcopy").addEventListener("click", function () {
       copy(peopleCsv(x), this);
     });
+  }
+
+  /* ---------- every cell at once ----------
+     The per-cell click is fine for looking; a prospecting list wants the whole
+     map in one file. Each cell is its own Super Carl call, so this is capped,
+     priced up front, and run a few at a time rather than all at once. */
+
+  var BULK_MAX_CELLS = 12;
+  var BULK_CONCURRENCY = 3;
+  var COST_PER_CELL = 0.11;   // measured, not guessed
+
+  async function exportAllPeople(r, btn) {
+    if (pulling) return;
+
+    var jobs = [];
+    r.rows.forEach(function (row) {
+      row.cells.forEach(function (c) {
+        if (typeof c.apollo === "number" && c.apollo > 0) {
+          jobs.push({ company: row.company, location: row.location || "", title: c.title });
+        }
+      });
+    });
+    if (!jobs.length) return;
+
+    var capped = jobs.length > BULK_MAX_CELLS;
+    if (capped) jobs = jobs.slice(0, BULK_MAX_CELLS);
+
+    var mins = Math.max(1, Math.round((jobs.length / BULK_CONCURRENCY) * 30 / 60));
+    if (!confirm(
+      "Pull the people from " + jobs.length + " cell" + (jobs.length === 1 ? "" : "s") + "?\n\n" +
+      "Roughly $" + (jobs.length * COST_PER_CELL).toFixed(2) + " and about " + mins +
+      " minute" + (mins === 1 ? "" : "s") + ".\n" +
+      (capped ? "\nThe grid has more than " + BULK_MAX_CELLS + " filled cells; only the first " +
+        BULK_MAX_CELLS + " will be pulled.\n" : "") +
+      "\nYou get one CSV with every person, their LinkedIn profile, and which cell they came from."
+    )) return;
+
+    pulling = true;
+    btn.disabled = true;
+    var $p = document.getElementById("plist");
+    var done = 0, all = [], failures = [];
+    document.body.style.cursor = "progress";
+
+    function tickLabel() {
+      btn.textContent = "Pulling " + done + " of " + jobs.length + "\u2026";
+      $p.innerHTML = '<p class="hint">Pulling people from ' + jobs.length + " cells \u2014 <b>" +
+        done + " done</b>. Leave this tab open.</p>";
+    }
+    tickLabel();
+
+    async function one(job) {
+      try {
+        var res = await fetch("/api/people", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ company: job.company, titles: [job.title], location: job.location, limit: 25 })
+        });
+        var payload = await res.json().catch(function () { return null; });
+        if (res.ok && payload && Array.isArray(payload.people)) {
+          payload.people.forEach(function (pn) {
+            all.push({
+              cell_company: job.company, cell_location: job.location, cell_title: job.title,
+              location_dropped: !!payload.location_dropped, person: pn
+            });
+          });
+        } else {
+          failures.push(job.company + " / " + job.title + (job.location ? " / " + job.location : ""));
+        }
+      } catch (e) {
+        failures.push(job.company + " / " + job.title);
+      }
+      done += 1;
+      tickLabel();
+    }
+
+    for (var i = 0; i < jobs.length; i += BULK_CONCURRENCY) {
+      await Promise.all(jobs.slice(i, i + BULK_CONCURRENCY).map(one));
+    }
+
+    pulling = false;
+    btn.disabled = false;
+    btn.textContent = "Export all people (" + jobs.length + " cells)";
+    document.body.style.cursor = "";
+
+    if (!all.length) {
+      $p.innerHTML = '<p class="err">No people came back from any cell. ' +
+        "Apollo counted them but Super Carl did not match them \u2014 usually the title wording.</p>";
+      return;
+    }
+
+    download(bulkCsv(all), "people-" + stamp() + ".csv", btn);
+    $p.innerHTML = '<p class="hint"><b>' + all.length + " people exported</b> from " +
+      jobs.length + " cells, with LinkedIn profiles." +
+      (failures.length ? " " + failures.length + " cell(s) returned nothing: " +
+        esc(failures.slice(0, 4).join("; ")) + "." : "") + "</p>";
+  }
+
+  function bulkCsv(items) {
+    function cell(v) {
+      var s = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    var rows = [["Name", "Title", "Company", "Location", "LinkedIn",
+                 "Months in seat", "Months experience", "Outreach band",
+                 "From company", "From location", "From title",
+                 "Location filter dropped", "Employer conflict"]];
+    items.forEach(function (it) {
+      var p = it.person;
+      var t = p.tenure_months;
+      var band = typeof t !== "number" ? "unknown"
+        : (t >= 18 && t <= 48) ? "PRIME" : (t < 18 ? "too new" : "long tenured");
+      rows.push([p.name, p.title, p.company || it.cell_company, p.location, p.linkedin_url,
+                 t, p.experience_months, band,
+                 it.cell_company, it.cell_location, it.cell_title,
+                 it.location_dropped ? "yes" : "", p.employer_conflict ? "yes" : ""]);
+    });
+    return rows.map(function (r) { return r.map(cell).join(","); }).join("\n");
   }
 
   function peopleCsv(x) {
