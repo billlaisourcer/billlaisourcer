@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Map where a title sits — given job titles and locations, rank the employers by how many matching people they have.">
+<title>Talent Map</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2F7FFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<style>
+
+    :root { color-scheme: light dark; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; }
+    img { max-width: 100%; }
+    [hidden] { display: none !important; }
+
+  /* Palette shared with index.html. Change one, change both. */
+  :root {
+    --ground:      #F7F9FD;
+    --surface:     #FFFFFF;
+    --surface-sunk:#EEF4FF;
+    --ink:         #040D1E;
+    --ink-muted:   #5D6E8E;
+    --ink-faint:   #7A8BAA;
+    --hairline:    #DFE7F4;
+    --hairline-hi: #C4D2EA;
+    --accent:      #2F7FFF;
+    --accent-soft: #EEF4FF;
+    --score:       #A66A05;
+    --score-bar:   #D08A10;
+    --good:        #1C7A55;
+    --good-soft:   #E1F2EB;
+    --warn:        #8A5E10;
+    --warn-soft:   #F8EED9;
+    --crit:        #C0392B;
+    --crit-soft:   #FBE6E3;
+    --focus:       #2F7FFF;
+
+    --f-display: "Playfair Display", Georgia, "Times New Roman", serif;
+    --f-chrome:  "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-prose:   "DM Sans", "Helvetica Neue", Arial, sans-serif;
+    --f-data:    "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --r: 4px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #060C18;
+      --surface:     #0D1526;
+      --surface-sunk:#0A1120;
+      --ink:         #E8EEF9;
+      --ink-muted:   #9AAAC6;
+      --ink-faint:   #6D7C99;
+      --hairline:    #1C2740;
+      --hairline-hi: #2C3A58;
+      --accent:      #61A4FF;
+      --accent-soft: #14203A;
+      --score:       #E8AE4A;
+      --score-bar:   #D08A10;
+      --good:        #5FC49A;
+      --good-soft:   #0F2620;
+      --warn:        #DDA84F;
+      --warn-soft:   #241E10;
+      --crit:        #F08878;
+      --crit-soft:   #2B1512;
+      --focus:       #61A4FF;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #060C18;
+    --surface:     #0D1526;
+    --surface-sunk:#0A1120;
+    --ink:         #E8EEF9;
+    --ink-muted:   #9AAAC6;
+    --ink-faint:   #6D7C99;
+    --hairline:    #1C2740;
+    --hairline-hi: #2C3A58;
+    --accent:      #61A4FF;
+    --accent-soft: #14203A;
+    --score:       #E8AE4A;
+    --score-bar:   #D08A10;
+    --good:        #5FC49A;
+    --good-soft:   #0F2620;
+    --warn:        #DDA84F;
+    --warn-soft:   #241E10;
+    --crit:        #F08878;
+    --crit-soft:   #2B1512;
+    --focus:       #61A4FF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-chrome);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* ---------- brand ---------- */
+  .brand { display: flex; align-items: flex-start; gap: 13px; min-width: 0; }
+  .brand__mark { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 7px; display: block; }
+  .brand__name {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 2px;
+  }
+
+  /* ---------- access gate ---------- */
+  .gate {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ground); padding: 24px;
+  }
+  .gate[hidden] { display: none; }
+  .gate__card {
+    width: 100%; max-width: 340px;
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 6px; padding: 26px 24px;
+    display: flex; flex-direction: column; gap: 13px;
+  }
+  .gate__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
+  .gate__title { margin: 0; font-family: var(--f-display); font-size: 17px;
+    font-weight: 700; letter-spacing: -0.01em; }
+  .gate__sub { margin: 0; font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted); }
+  .gate__err { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--crit); }
+  .gate__err[hidden] { display: none; }
+
+  .masthead {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: flex-end; justify-content: space-between;
+    padding: 20px clamp(16px, 3vw, 32px) 16px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface);
+  }
+  .masthead h1 {
+    margin: 0; font-family: var(--f-display);
+    font-size: 21px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .masthead p {
+    margin: 3px 0 0; font-family: var(--f-prose);
+    font-size: 14px; color: var(--ink-muted); max-width: 62ch;
+  }
+  .masthead__actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  button {
+    font-family: var(--f-chrome);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+    padding: 8px 14px;
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); color: var(--ink); cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  :root[data-theme="dark"] button.primary { color: #040D1E; }
+  button.primary:hover { filter: brightness(1.08); color: var(--surface); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.primary { color: #040D1E; }
+    :root:not([data-theme="light"]) button.primary:hover { color: #040D1E; }
+  }
+  a.btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--f-chrome); font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface); color: var(--ink-muted); text-decoration: none;
+  }
+  a.btn:hover { border-color: var(--accent); color: var(--accent); }
+  a.btn .arrow { font-size: 11px; opacity: .8; }
+  button.quiet { font-weight: 500; color: var(--ink-muted); }
+  button.quiet:hover { color: var(--accent); }
+  button[disabled] { opacity: .55; cursor: progress; }
+  .sep { width: 1px; align-self: stretch; margin: 2px 3px; background: var(--hairline); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    button, a.btn { transition: border-color .12s ease, color .12s ease; }
+  }
+
+  /* ---------- shell ---------- */
+  .shell { display: grid; grid-template-columns: 1fr; gap: 0; align-items: start; }
+  @media (min-width: 980px) {
+    .shell { grid-template-columns: minmax(340px, 400px) 1fr; }
+    .pane--in {
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      border-right: 1px solid var(--hairline); border-bottom: none;
+    }
+  }
+  .shell > * { min-width: 0; }
+
+  .pane--in {
+    display: flex; flex-direction: column; min-width: 0;
+    background: var(--surface-sunk);
+    border-bottom: 1px solid var(--hairline);
+    padding: 16px clamp(14px, 2vw, 20px);
+    gap: 10px; min-height: 0;
+  }
+  .pane__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px 10px;
+    flex-wrap: wrap;
+  }
+  .pane__head .tabs { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; }
+
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 10px; border: 1px solid transparent; border-radius: var(--r);
+    background: none; color: var(--ink-faint); cursor: pointer; white-space: nowrap;
+  }
+  .tab.is-on { background: var(--surface); border-color: var(--hairline-hi); color: var(--ink); }
+  .tab:hover { color: var(--accent); }
+
+  .mode { display: flex; flex-direction: column; gap: 9px; flex: 1 1 auto; min-height: 0; }
+  .mode[hidden] { display: none; }
+
+  textarea, .field {
+    width: 100%; min-width: 0;
+    font-family: var(--f-chrome); font-size: 13px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--hairline-hi); border-radius: var(--r);
+    padding: 8px 10px;
+  }
+  textarea { resize: vertical; line-height: 1.5; padding: 10px; }
+  .field::placeholder, textarea::placeholder { color: var(--ink-faint); }
+  /* Must not grow. This pane carries a drop zone, two collapsibles and the run
+     button beneath the notes; letting the textarea absorb the spare height
+     pushes the button past the fold on a tall window. */
+  #notes { min-height: 170px; flex: 0 1 auto; }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1 1 0; min-width: 0; }
+
+  .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted);
+  }
+
+  button.wide { width: 100%; padding: 10px; font-size: 13.5px; }
+
+  .hint { margin: 0; font-family: var(--f-prose); font-size: 12px; color: var(--ink-faint); }
+  .hint b { color: var(--ink-muted); font-family: var(--f-data); font-weight: 600; }
+
+  .err {
+    font-family: var(--f-data); font-size: 12px;
+    color: var(--crit); background: var(--crit-soft);
+    border: 1px solid var(--crit); border-radius: var(--r);
+    padding: 9px 11px; white-space: pre-wrap; word-break: break-word;
+  }
+
+  /* ---------- collapsible input groups ---------- */
+  .grp { border: 1px solid var(--hairline-hi); border-radius: var(--r); background: var(--surface); }
+  .grp > summary {
+    list-style: none; cursor: pointer; padding: 8px 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp > summary::before {
+    content: "\25B8"; font-size: 10px; color: var(--ink-faint); transition: transform .12s ease;
+  }
+  .grp[open] > summary::before { transform: rotate(90deg); }
+  .grp > summary:hover { color: var(--accent); }
+  .grp__tag {
+    margin-left: auto; font-family: var(--f-data); font-size: 11px;
+    letter-spacing: 0; text-transform: none; color: var(--accent);
+  }
+  .grp__tag:empty { display: none; }
+  .grp__body {
+    padding: 10px; display: flex; flex-direction: column; gap: 7px;
+    border-top: 1px solid var(--hairline);
+  }
+  .grp__body textarea { min-height: 90px; }
+
+  /* ---------- resume dropzone ---------- */
+  .drop {
+    border: 1.5px dashed var(--hairline-hi); border-radius: var(--r);
+    background: var(--surface);
+    padding: 16px 14px; text-align: center; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .drop:hover, .drop:focus-visible { border-color: var(--accent); }
+  .drop.is-over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop__t { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .drop.is-over .drop__t, .drop:hover .drop__t { color: var(--accent); }
+  .drop__s { font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); }
+
+  .file {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 11px; border: 1px solid var(--good);
+    background: var(--good-soft); border-radius: var(--r);
+  }
+  .file__n {
+    flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file__m { font-family: var(--f-data); font-size: 11px; color: var(--ink-muted); flex: 0 0 auto; }
+  .file__x {
+    flex: 0 0 auto; padding: 3px 8px; font-size: 11px;
+    background: transparent; border-color: transparent; color: var(--ink-muted);
+  }
+  .file__x:hover { color: var(--crit); border-color: var(--crit); }
+
+  /* ---------- output ---------- */
+  .pane--out { padding: clamp(18px, 3vw, 34px); min-width: 0; }
+  .doc { max-width: 940px; margin: 0 auto; min-width: 0; }
+
+  .empty {
+    color: var(--ink-faint); font-family: var(--f-prose); font-size: 15px;
+    padding: 40px 0; max-width: 58ch;
+  }
+  .empty b { color: var(--ink); }
+
+  .subhead { margin-bottom: 22px; }
+  .subhead .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .subhead h2 {
+    margin: 5px 0 6px; font-family: var(--f-display);
+    font-size: clamp(24px, 3.2vw, 33px); font-weight: 700;
+    letter-spacing: -0.02em; line-height: 1.14; text-wrap: balance;
+  }
+  .subhead .role { font-family: var(--f-prose); font-size: 15px; color: var(--ink-muted); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 11px; }
+
+  .chip {
+    display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 2.5px 7px; border-radius: 2px; white-space: nowrap;
+    border: 1px solid var(--hairline-hi); color: var(--ink-muted);
+  }
+  .chip.ok  { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+  .chip.md  { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .chip.bad { background: var(--crit-soft); color: var(--crit); border-color: var(--crit); }
+  .chip.acc { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  h3.sec {
+    margin: 30px 0 12px; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    padding-bottom: 7px; border-bottom: 1px solid var(--hairline);
+  }
+  h3.sec .n { color: var(--ink-faint); font-family: var(--f-data); font-weight: 500; }
+
+  .lead {
+    font-family: var(--f-prose); font-size: 16px; line-height: 1.6; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 var(--r) var(--r) 0; padding: 15px 18px;
+  }
+
+  /* the gaps checklist — the thing that makes this more than a formatter */
+  .gaps { border: 1px solid var(--warn); background: var(--warn-soft);
+    border-radius: var(--r); padding: 14px 18px; }
+  .gaps.none { border-color: var(--good); background: var(--good-soft); }
+  .gaps h4 {
+    margin: 0 0 7px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--warn);
+  }
+  .gaps.none h4 { color: var(--good); }
+  .gaps ul { margin: 0; padding-left: 17px; font-family: var(--f-prose);
+    font-size: 13.5px; color: var(--ink); columns: 2; column-gap: 26px; }
+  .gaps li { margin-bottom: 4px; break-inside: avoid; }
+  @media (max-width: 640px) { .gaps ul { columns: 1; } }
+  .gaps p { margin: 0; font-family: var(--f-prose); font-size: 13.5px; color: var(--ink); }
+
+  /* field grid */
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px;
+    background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r);
+    overflow: hidden; }
+  .fact { background: var(--surface); padding: 12px 14px; }
+  .fact__k {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fact__v { font-family: var(--f-prose); font-size: 14px; line-height: 1.45; color: var(--ink); }
+  .fact__v.miss { color: var(--ink-faint); font-style: italic; }
+  .fact__q {
+    margin-top: 5px; font-family: var(--f-prose); font-size: 12px; line-height: 1.45;
+    color: var(--ink-muted); border-left: 2px solid var(--hairline-hi); padding-left: 8px;
+  }
+  .src {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 1px 5px; border-radius: 2px; border: 1px solid var(--hairline-hi);
+    color: var(--ink-faint); white-space: nowrap;
+  }
+  .src.call { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .src.resume { color: var(--ink-muted); }
+  .src.both { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .src.inferred { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+
+  .dots { display: inline-flex; gap: 2px; margin-right: 7px; vertical-align: -1px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--hairline-hi); }
+  .dots i.on { background: var(--score-bar); }
+
+  .ai { background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--r); padding: 15px 18px; }
+  .ai__top { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ai__r { font-family: var(--f-data); font-variant-numeric: tabular-nums;
+    font-size: 22px; font-weight: 600; color: var(--score); }
+  .ai__s { font-family: var(--f-prose); font-size: 14px; line-height: 1.55;
+    color: var(--ink); margin: 9px 0 0; }
+  ul.ev { margin: 9px 0 0; padding-left: 17px; font-family: var(--f-prose);
+    font-size: 13.5px; color: var(--ink-muted); }
+  ul.ev li { margin-bottom: 4px; }
+
+  table.mh { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.mh th {
+    text-align: left; font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 10px 7px 0; border-bottom: 1px solid var(--hairline-hi);
+  }
+  table.mh td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--hairline);
+    vertical-align: top; }
+  table.mh td.rq { font-weight: 600; }
+  table.mh td.vd { width: 1%; white-space: nowrap; }
+  table.mh td.ev { font-family: var(--f-prose); color: var(--ink-muted); line-height: 1.45; }
+
+  ul.plain { margin: 0; padding-left: 17px; font-family: var(--f-prose); font-size: 14px; }
+  ul.plain li { margin-bottom: 5px; }
+  ul.plain.warn li { color: var(--ink); }
+
+  .exports { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .exports__opt {
+    display: flex; align-items: flex-start; gap: 7px; margin-top: 10px;
+    font-family: var(--f-prose); font-size: 12.5px; line-height: 1.45;
+    color: var(--ink-muted); max-width: 70ch; cursor: pointer;
+  }
+  .exports__opt input { margin-top: 2px; flex: 0 0 auto; }
+
+  .scroll { overflow-x: auto; }
+
+  /* ============================ print / PDF ============================
+
+     "Export PDF" is the browser's own print-to-PDF. That gives real selectable
+     text, real page breaks and embedded fonts, where a canvas-based JS library
+     would produce a fuzzy picture of the screen at several times the file size.
+
+     Two things this has to get right. First, colour: the app follows the
+     viewer's dark theme, and printing white-on-dark yields a blank page,
+     because browsers drop backgrounds but keep text colour. So the print
+     rules restate a light palette unconditionally. Second, audience: the
+     gaps checklist and the provenance labels are the recruiter's working
+     notes. A client should not receive a list of what nobody asked, so those
+     are excluded unless the recruiter opts in. */
+
+  .print-head { display: none; }
+
+  @media print {
+    /* Force the light palette regardless of the viewer's theme. */
+    :root, :root[data-theme="dark"] {
+      --ground: #FFFFFF; --surface: #FFFFFF; --surface-sunk: #FFFFFF;
+      --ink: #111111; --ink-muted: #444444; --ink-faint: #666666;
+      --hairline: #CCCCCC; --hairline-hi: #999999;
+      --accent: #1A4FA0; --accent-soft: #FFFFFF;
+      --score: #6B4A00; --score-bar: #6B4A00;
+      --good: #1C5F44; --good-soft: #FFFFFF;
+      --warn: #6B4A00; --warn-soft: #FFFFFF;
+      --crit: #96271B; --crit-soft: #FFFFFF;
+    }
+
+    @page { margin: 16mm 14mm; }
+
+    html, body { background: #FFFFFF; color: #111111; font-size: 11pt; }
+
+    /* The app chrome has no place in the document. */
+    .gate, .masthead, .pane--in, .exports, .print-hide { display: none !important; }
+
+    .shell { display: block; }
+    .pane--out { padding: 0; }
+    .doc { max-width: none; margin: 0; }
+
+    /* A proper document header, printed once at the top. */
+    .print-head {
+      display: block; margin-bottom: 14pt;
+      padding-bottom: 8pt; border-bottom: 1.5pt solid var(--accent);
+    }
+    .print-head__brand {
+      font-size: 8.5pt; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .print-head__line {
+      margin-top: 2pt; font-family: var(--f-prose);
+      font-size: 9.5pt; color: var(--ink-muted);
+    }
+
+    /* Internal-only material: the recruiter's checklist and the provenance
+       labels. Shown only when the recruiter ticks "include internal notes". */
+    .internal, .src, .internal-inline { display: none; }
+    body.print-internal .internal { display: block; }
+    body.print-internal .src { display: inline; }
+    body.print-internal .internal-inline { display: inline-block; }
+
+    a { color: var(--ink); text-decoration: none; }
+    /* Spell out link targets, since a printed page cannot be clicked. */
+    .card__links a::after, .chip a::after { content: " (" attr(href) ")"; font-size: 8pt; }
+
+    .subhead h2 { font-size: 20pt; }
+    h3.sec {
+      font-size: 8.5pt; margin: 16pt 0 7pt; padding-bottom: 4pt;
+      break-after: avoid; page-break-after: avoid;
+    }
+    .lead {
+      font-size: 11.5pt; padding: 10pt 12pt;
+      border: 0.75pt solid var(--hairline); border-left: 2pt solid var(--accent);
+      break-inside: avoid; page-break-inside: avoid;
+    }
+
+    /* Nothing should be split down the middle of a thought. */
+    .fact, .ai, .gaps, .hcrit, table.mh tr, ul.plain li, ul.ev li {
+      break-inside: avoid; page-break-inside: avoid;
+    }
+
+    .facts {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      border: 0.75pt solid var(--hairline); background: none;
+    }
+    .fact { border: 0.5pt solid var(--hairline); padding: 7pt 9pt; }
+    .fact__k { font-size: 7.5pt; }
+    .fact__v { font-size: 10pt; }
+    .fact__q { font-size: 9pt; }
+
+    .chip { border: 0.5pt solid var(--hairline-hi); background: none !important; }
+    .gaps { border: 0.75pt solid var(--warn); background: none; padding: 9pt 12pt; }
+    .ai { border: 0.75pt solid var(--hairline); padding: 10pt 12pt; }
+    table.mh { font-size: 9.5pt; }
+    table.mh th { border-bottom: 0.75pt solid var(--hairline-hi); }
+    table.mh td { border-bottom: 0.5pt solid var(--hairline); }
+
+    .dots i { border: 0.4pt solid var(--ink-faint); }
+    .dots i.on { background: var(--ink); }
+  }
+
+
+  /* ---------- talent map ---------- */
+  .opts { display: flex; flex-wrap: wrap; gap: 5px; }
+  .opt {
+    font-family: var(--f-chrome); font-size: 12px;
+    padding: 4px 9px; border: 1px solid var(--hairline-hi); border-radius: 999px;
+    background: var(--surface); color: var(--ink-muted); cursor: pointer;
+    user-select: none; white-space: nowrap;
+  }
+  .opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .opt:hover { border-color: var(--accent); color: var(--accent); }
+  .opt.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted); margin-top: 3px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .check {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--f-chrome); font-size: 13px; color: var(--ink-muted);
+  }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r);
+    overflow: hidden; margin-bottom: 18px; }
+  .stat { background: var(--surface); padding: 12px 14px; }
+  .stat__k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); }
+  .stat__v { font-family: var(--f-data); font-size: 21px; font-weight: 500;
+    color: var(--ink); margin-top: 3px; }
+  .stat__n { font-family: var(--f-prose); font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+
+  table.mapt { width: 100%; border-collapse: collapse; font-family: var(--f-chrome); font-size: 13px; }
+  table.mapt th {
+    text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 10px 7px 0; border-bottom: 1px solid var(--hairline-hi);
+  }
+  table.mapt td { padding: 10px 10px 10px 0; border-bottom: 1px solid var(--hairline);
+    vertical-align: top; }
+  table.mapt tr:last-child td { border-bottom: 0; }
+  .mapt__rank { font-family: var(--f-data); font-size: 12px; color: var(--ink-faint); width: 1%; }
+  .mapt__co { font-weight: 600; color: var(--ink); }
+  .mapt__n { font-family: var(--f-data); font-size: 13px; color: var(--ink); white-space: nowrap; }
+  .mapt__t { color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+  .bar { height: 4px; background: var(--surface-sunk); border-radius: 2px; margin-top: 5px;
+    width: 130px; max-width: 100%; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--score-bar); }
+  .partial {
+    font-family: var(--f-prose); font-size: 12.5px; line-height: 1.55;
+    color: var(--warn); background: var(--warn-soft);
+    border: 1px solid var(--warn); border-radius: var(--r);
+    padding: 9px 12px; margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate__card">
+    <div class="gate__brand">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+        <text x="19" y="22" text-anchor="middle"
+          font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+      </svg>
+      <div>
+        <div class="brand__name">SD Talent</div>
+        <h2 class="gate__title">Talent Map</h2>
+      </div>
+    </div>
+    <p class="gate__sub">Enter the access password to continue.</p>
+    <input class="field" id="gate-pw" type="password" autocomplete="current-password"
+      placeholder="Password" aria-label="Access password">
+    <button class="primary wide" id="gate-go" type="button">Enter</button>
+    <p class="gate__err" id="gate-err" hidden>That password is not correct.</p>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
+        <text x="19" y="22" text-anchor="middle"
+          font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+      </svg>
+    <div>
+      <div class="brand__name">SD Talent</div>
+      <h1>Talent Map</h1>
+      <p>Name a title and a market. Get the size of that pool and the employers ranked by how many of those people they hold.</p>
+    </div>
+  </div>
+  <div class="masthead__actions">
+    <a class="btn" href="/">ICP Generator</a>
+    <a class="btn" href="/submit">Submissions</a>
+    <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="btn-new" type="button">New map</button>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="pane pane--in">
+    <div class="pane__head">
+      <h2>Search</h2>
+      <span class="chip" id="status">ready</span>
+    </div>
+
+    <div class="mode">
+      <label class="lbl" for="titles">Job titles</label>
+      <textarea class="field" id="titles" spellcheck="false" style="min-height:82px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line&#10;Head of Community&#10;Community Manager"></textarea>
+      <label class="check"><input type="checkbox" id="exact"> Exact titles only &mdash; do not widen to similar ones</label>
+
+      <label class="lbl" for="locations">Locations</label>
+      <textarea class="field" id="locations" spellcheck="false" style="min-height:64px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line&#10;United States&#10;New York, New York"></textarea>
+      <select class="field" id="locmode" aria-label="What the location applies to">
+        <option value="person">Where the person lives</option>
+        <option value="organization">Where the company is headquartered</option>
+      </select>
+
+      <label class="lbl">Seniority <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
+      <div class="opts" id="sen">
+            <label class="opt"><input type="checkbox" name="sen" value="owner">Owner</label>
+            <label class="opt"><input type="checkbox" name="sen" value="founder">Founder</label>
+            <label class="opt"><input type="checkbox" name="sen" value="c_suite">C-suite</label>
+            <label class="opt"><input type="checkbox" name="sen" value="partner">Partner</label>
+            <label class="opt"><input type="checkbox" name="sen" value="vp">VP</label>
+            <label class="opt"><input type="checkbox" name="sen" value="head">Head</label>
+            <label class="opt"><input type="checkbox" name="sen" value="director">Director</label>
+            <label class="opt"><input type="checkbox" name="sen" value="manager">Manager</label>
+            <label class="opt"><input type="checkbox" name="sen" value="senior">Senior</label>
+            <label class="opt"><input type="checkbox" name="sen" value="entry">Entry</label>
+            <label class="opt"><input type="checkbox" name="sen" value="intern">Intern</label>
+      </div>
+
+      <label class="lbl">Company size <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
+      <div class="opts" id="size">
+            <label class="opt"><input type="checkbox" name="size" value="1,10">1–10</label>
+            <label class="opt"><input type="checkbox" name="size" value="11,50">11–50</label>
+            <label class="opt"><input type="checkbox" name="size" value="51,200">51–200</label>
+            <label class="opt"><input type="checkbox" name="size" value="201,500">201–500</label>
+            <label class="opt"><input type="checkbox" name="size" value="501,1000">501–1k</label>
+            <label class="opt"><input type="checkbox" name="size" value="1001,5000">1k–5k</label>
+            <label class="opt"><input type="checkbox" name="size" value="5001,10000">5k–10k</label>
+            <label class="opt"><input type="checkbox" name="size" value="10001,1000000">10k+</label>
+      </div>
+
+      <label class="lbl" for="depth">Sample depth</label>
+      <select class="field" id="depth" aria-label="Sample depth">
+        <option value="3">300 people &mdash; quick read</option>
+        <option value="5">500 people</option>
+        <option value="10">1,000 people &mdash; slowest, steadiest ranking</option>
+        <option value="1">100 people &mdash; fastest</option>
+      </select>
+
+      <button class="primary wide" id="btn-run" type="button">Map the market</button>
+      <p class="hint" id="run-hint">Apollo People Search costs no credits, so depth is free — it only costs time.</p>
+      <p class="err" id="err" hidden></p>
+    </div>
+  </section>
+
+  <section class="pane pane--out">
+    <div id="out"></div>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  /* ---------- access gate ---------- */
+  /* Same curtain and password as the other two pages. It is a curtain, not a
+     lock — the password is in this file and /api/apollo-map is open. */
+  var GATE_PASSWORD = "william27";
+  var GATE_KEY = "sdtalent:unlocked";
+  var $gate = document.getElementById("gate");
+  var $gatePw = document.getElementById("gate-pw");
+  var $gateErr = document.getElementById("gate-err");
+
+  function tryGate() {
+    if ($gatePw.value.trim() === GATE_PASSWORD) {
+      $gate.hidden = true;
+      store(GATE_KEY, "1");
+    } else {
+      $gateErr.hidden = false;
+      $gatePw.value = "";
+      $gatePw.focus();
+    }
+  }
+  document.getElementById("gate-go").addEventListener("click", tryGate);
+  $gatePw.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") tryGate(); else $gateErr.hidden = true;
+  });
+  document.getElementById("btn-lock").addEventListener("click", function () {
+    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
+    $gatePw.value = "";
+    $gateErr.hidden = true;
+    $gate.hidden = false;
+    $gatePw.focus();
+  });
+  if (recall(GATE_KEY) === "1") $gate.hidden = true; else $gatePw.focus();
+
+  /* ---------- elements ---------- */
+
+  var $titles = document.getElementById("titles");
+  var $locations = document.getElementById("locations");
+  var $locmode = document.getElementById("locmode");
+  var $exact = document.getElementById("exact");
+  var $depth = document.getElementById("depth");
+  var $sen = document.getElementById("sen");
+  var $size = document.getElementById("size");
+  var $run = document.getElementById("btn-run");
+  var $hint = document.getElementById("run-hint");
+  var $err = document.getElementById("err");
+  var $status = document.getElementById("status");
+  var $out = document.getElementById("out");
+
+  var IDLE_HINT = "Apollo People Search costs no credits, so depth is free — it only costs time.";
+  var lastResult = null;
+
+  var EMPTY = '<p class="empty">Name one or more job titles on the left, add the markets you ' +
+    'care about, and map it. You get the size of the pool and the employers ranked by how ' +
+    'many of those people they hold.</p>';
+  $out.innerHTML = EMPTY;
+
+  function setStatus(text, cls) {
+    $status.textContent = text;
+    $status.className = "chip" + (cls ? " " + cls : "");
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function lines(el) {
+    return el.value.split("\n").map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length > 0; });
+  }
+
+  /* Chip groups behave like checkboxes; the class just mirrors checked state. */
+  function wireChips(root) {
+    root.addEventListener("change", function (ev) {
+      var input = ev.target;
+      if (!input || input.type !== "checkbox") return;
+      input.closest(".opt").classList.toggle("is-on", input.checked);
+      persist();
+    });
+  }
+  function chipValues(root) {
+    return [].slice.call(root.querySelectorAll("input:checked")).map(function (i) { return i.value; });
+  }
+  function setChips(root, values) {
+    [].slice.call(root.querySelectorAll("input")).forEach(function (i) {
+      i.checked = values.indexOf(i.value) !== -1;
+      i.closest(".opt").classList.toggle("is-on", i.checked);
+    });
+  }
+  wireChips($sen);
+  wireChips($size);
+
+  /* ---------- persistence ---------- */
+
+  var K = "talent-map:";
+  function readList(key) {
+    try {
+      var v = JSON.parse(recall(key) || "[]");
+      return Array.isArray(v) ? v.filter(function (x) { return typeof x === "string"; }) : [];
+    } catch (e) {
+      return []; // an older or hand-edited value is not worth failing a page load over
+    }
+  }
+  function persist() {
+    store(K + "titles", $titles.value);
+    store(K + "locations", $locations.value);
+    store(K + "locmode", $locmode.value);
+    store(K + "exact", $exact.checked ? "1" : "");
+    store(K + "depth", $depth.value);
+    store(K + "sen", JSON.stringify(chipValues($sen)));
+    store(K + "size", JSON.stringify(chipValues($size)));
+  }
+  [$titles, $locations, $locmode, $depth].forEach(function (el) {
+    el.addEventListener("input", persist);
+    el.addEventListener("change", persist);
+  });
+  $exact.addEventListener("change", persist);
+
+  function restore() {
+    $titles.value = recall(K + "titles") || "";
+    $locations.value = recall(K + "locations") || "";
+    $locmode.value = recall(K + "locmode") || "person";
+    $exact.checked = recall(K + "exact") === "1";
+    $depth.value = recall(K + "depth") || "3";
+    setChips($sen, readList(K + "sen"));
+    setChips($size, readList(K + "size"));
+  }
+  restore();
+
+  /* ---------- render ---------- */
+
+  function num(n) { return n.toLocaleString(); }
+
+  function render(r) {
+    var top = r.companies.length ? r.companies[0].people : 0;
+    var h = "";
+
+    h += '<div class="stats">' +
+      '<div class="stat"><div class="stat__k">People in market</div>' +
+        '<div class="stat__v">' + num(r.totalEntries) + "</div>" +
+        '<div class="stat__n">matching every filter</div></div>' +
+      '<div class="stat"><div class="stat__k">Sampled</div>' +
+        '<div class="stat__v">' + num(r.sampled) + "</div>" +
+        '<div class="stat__n">' + r.pagesFetched + (r.pagesFetched === 1 ? " page" : " pages") + " read</div></div>" +
+      '<div class="stat"><div class="stat__k">Employers</div>' +
+        '<div class="stat__v">' + num(r.distinctCompanies) + "</div>" +
+        '<div class="stat__n">in the sample</div></div>' +
+      "</div>";
+
+    if (r.partial) {
+      h += '<p class="partial"><b>This ranking is from a sample.</b> ' +
+        num(r.sampled) + " of " + num(r.totalEntries) + " people were read, so treat the " +
+        "order as indicative and the counts as a floor. Raise the sample depth for a " +
+        "steadier ranking.</p>";
+    }
+
+    if (!r.companies.length) {
+      h += '<p class="empty">No people matched. Loosen a filter — exact titles and ' +
+        "seniority are the two that most often empty a search.</p>";
+      $out.innerHTML = h;
+      return;
+    }
+
+    h += '<table class="mapt"><thead><tr>' +
+      "<th></th><th>Company</th><th>People</th><th>With email</th><th>Titles seen</th>" +
+      "</tr></thead><tbody>";
+
+    r.companies.forEach(function (c, i) {
+      var pct = (c.share * 100).toFixed(1);
+      var width = top ? Math.round((c.people / top) * 100) : 0;
+      h += "<tr>" +
+        '<td class="mapt__rank">' + (i + 1) + "</td>" +
+        '<td><div class="mapt__co">' + esc(c.name) + "</div>" +
+          '<div class="bar"><i style="width:' + width + '%"></i></div></td>' +
+        '<td class="mapt__n">' + c.people + ' <span style="color:var(--ink-faint)">&middot; ' + pct + "%</span></td>" +
+        '<td class="mapt__n">' + c.reachable + "</td>" +
+        '<td class="mapt__t">' + c.titles.slice(0, 4).map(function (t) {
+          return esc(t.title) + ' <span style="color:var(--ink-faint)">(' + t.count + ")</span>";
+        }).join("<br>") +
+        (c.titles.length > 4 ? '<div style="color:var(--ink-faint)">+' + (c.titles.length - 4) + " more</div>" : "") +
+        "</td></tr>";
+    });
+
+    h += "</tbody></table>";
+    h += '<div class="exports"><button id="btn-csv" type="button">Copy CSV</button>' +
+      '<button id="btn-md" type="button">Copy markdown</button></div>';
+    h += '<p class="hint" style="margin-top:12px">Apollo’s People Search returns the employer’s ' +
+      "name only — no domain, headcount, industry or headquarters. Those need a separate, " +
+      "credit-charging enrichment call.</p>";
+
+    $out.innerHTML = h;
+    document.getElementById("btn-csv").addEventListener("click", function () { copy(csv(r), this); });
+    document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
+  }
+
+  function csv(r) {
+    function cell(v) {
+      var s = String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    var rows = [["Company", "People", "Share", "With email", "Titles seen"]];
+    r.companies.forEach(function (c) {
+      rows.push([c.name, c.people, (c.share * 100).toFixed(1) + "%", c.reachable,
+        c.titles.map(function (t) { return t.title + " (" + t.count + ")"; }).join("; ")]);
+    });
+    return rows.map(function (row) { return row.map(cell).join(","); }).join("\n");
+  }
+
+  function md(r) {
+    var q = r.query;
+    var out = ["# Talent map — " + q.titles.join(", ") +
+      (q.locations.length ? " in " + q.locations.join(", ") : ""), ""];
+    out.push("- **People in market:** " + num(r.totalEntries));
+    out.push("- **Sampled:** " + num(r.sampled) + " across " + r.pagesFetched + " page(s)");
+    out.push("- **Employers in sample:** " + num(r.distinctCompanies));
+    if (r.partial) out.push("- _Ranking is from a sample; counts are a floor._");
+    out.push("", "| # | Company | People | Share | With email |", "|---|---|---|---|---|");
+    r.companies.forEach(function (c, i) {
+      out.push("| " + (i + 1) + " | " + c.name + " | " + c.people + " | " +
+        (c.share * 100).toFixed(1) + "% | " + c.reachable + " |");
+    });
+    return out.join("\n");
+  }
+
+  function copy(text, btn) {
+    var done = function () {
+      var was = btn.textContent;
+      btn.textContent = "Copied";
+      setTimeout(function () { btn.textContent = was; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+    } else { fallback(text, done); }
+  }
+  function fallback(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) { /* nothing to do */ }
+    document.body.removeChild(ta);
+  }
+
+  /* ---------- run ---------- */
+
+  async function run() {
+    var titles = lines($titles);
+    if (!titles.length) {
+      $err.hidden = false;
+      $err.textContent = "Give at least one job title.";
+      setStatus("need a title", "bad");
+      return;
+    }
+
+    $err.hidden = true;
+    $run.disabled = true;
+    setStatus("mapping", "md");
+
+    var started = Date.now();
+    var ticker = setInterval(function () {
+      $hint.innerHTML = "Reading Apollo — <b>" +
+        Math.round((Date.now() - started) / 1000) + "s</b>.";
+    }, 1000);
+
+    function finish(text, cls) {
+      clearInterval(ticker);
+      $run.disabled = false;
+      $hint.textContent = IDLE_HINT;
+      setStatus(text, cls);
+    }
+
+    try {
+      var res = await fetch("/api/apollo-map", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          titles: titles,
+          locations: lines($locations),
+          locationMode: $locmode.value,
+          seniorities: chipValues($sen),
+          employeeRanges: chipValues($size),
+          exactTitles: $exact.checked,
+          depth: parseInt($depth.value, 10)
+        })
+      });
+
+      var payload = await res.json().catch(function () { return null; });
+
+      if (!res.ok || !payload) {
+        var msg = (payload && payload.error) || ("Request failed (" + res.status + ").");
+        if (payload && payload.detail) msg += "\n" + payload.detail;
+        $err.hidden = false;
+        $err.textContent = msg;
+        finish("failed", "bad");
+        return;
+      }
+
+      lastResult = payload;
+      render(payload);
+      finish(payload.distinctCompanies + " employers", "ok");
+    } catch (e) {
+      $err.hidden = false;
+      $err.textContent = "Could not reach the map endpoint.\n" + (e && e.message ? e.message : e);
+      finish("failed", "bad");
+    }
+  }
+
+  $run.addEventListener("click", run);
+
+  /* ---------- new map ---------- */
+
+  document.getElementById("btn-new").addEventListener("click", function () {
+    if ($titles.value.trim() &&
+        !confirm("Clear the titles, locations, filters and the current map?")) return;
+    $titles.value = "";
+    $locations.value = "";
+    $locmode.value = "person";
+    $exact.checked = false;
+    $depth.value = "3";
+    setChips($sen, []);
+    setChips($size, []);
+    persist();
+    lastResult = null;
+    $out.innerHTML = EMPTY;
+    $err.hidden = true;
+    setStatus("ready");
+    $titles.focus();
+  });
+})();
+</script>
+</body>
+</html>
