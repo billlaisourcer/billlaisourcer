@@ -19,6 +19,38 @@ export const APOLLO_SEARCH_URL =
 /** Apollo's own ceiling: 100 per page, 500 pages, 50,000 records displayed. */
 export const APOLLO_MAX_PER_PAGE = 100;
 
+/**
+ * Company search. People Search has no company-name and no industry filter —
+ * only domains — so a name or a sector has to be resolved into Apollo company
+ * ids here first, and those ids handed to People Search as organization_ids[].
+ *
+ * Unlike People Search this one is NOT free: 1 credit per page.
+ */
+export const APOLLO_ORG_SEARCH_URL =
+  "https://api.apollo.io/api/v1/mixed_companies/search";
+
+export type OrgLookup = {
+  /** Partial match, one name per call — Apollo takes a single string here. */
+  name?: string;
+  /** Sector/keyword tags, e.g. "mental health". ANDed with name when both given. */
+  keywords: string[];
+  locations: string[];
+  perPage: number;
+};
+
+export function buildOrgSearchParams(q: OrgLookup): URLSearchParams {
+  const p = new URLSearchParams();
+  if (q.name) p.append("q_organization_name", q.name);
+  for (const k of q.keywords) p.append("q_organization_keyword_tags[]", k);
+  for (const l of q.locations) p.append("organization_locations[]", l);
+  p.append("page", "1");
+  p.append("per_page", String(q.perPage));
+  return p;
+}
+
+export type ApolloOrg = { id?: string; name?: string; primary_domain?: string | null };
+export type ApolloOrgResponse = { organizations?: ApolloOrg[]; accounts?: ApolloOrg[] };
+
 /** Seniority values Apollo accepts. Anything else is a 422. */
 export const SENIORITIES = [
   "owner",
@@ -49,6 +81,10 @@ export type MapQuery = {
   employeeRanges: string[];
   /** Apollo widens to similar titles by default; false pins to exact matches. */
   exactTitles: boolean;
+  /** Resolved from company names and sector keywords via Organization Search. */
+  organizationIds: string[];
+  /** Bare domains — the one employer filter People Search takes directly. */
+  domains: string[];
   page: number;
   perPage: number;
 };
@@ -105,6 +141,8 @@ export function buildSearchParams(q: MapQuery): URLSearchParams {
   for (const r of q.employeeRanges) {
     p.append("organization_num_employees_ranges[]", r);
   }
+  for (const id of q.organizationIds) p.append("organization_ids[]", id);
+  for (const d of q.domains) p.append("q_organization_domains_list[]", d);
 
   // Only worth sending when turning the default off; sending "true" is noise
   // in the cache key and in the logs.

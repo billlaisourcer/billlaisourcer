@@ -667,6 +667,13 @@
         <option value="organization">Where the company is headquartered</option>
       </select>
 
+      <label class="lbl" for="cos">Companies <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
+      <textarea class="field" id="cos" spellcheck="false" style="min-height:52px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line &mdash; name or domain&#10;Headspace&#10;calm.com"></textarea>
+
+      <label class="lbl" for="inds">Industry / type <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
+      <input class="field" id="inds" placeholder="e.g. mental health, fitness">
+
       <label class="lbl">Seniority <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
       <div class="opts" id="sen">
             <label class="opt"><input type="checkbox" name="sen" value="owner">Owner</label>
@@ -756,6 +763,8 @@
   var $titles = document.getElementById("titles");
   var $locations = document.getElementById("locations");
   var $locmode = document.getElementById("locmode");
+  var $cos = document.getElementById("cos");
+  var $inds = document.getElementById("inds");
   var $exact = document.getElementById("exact");
   var $depth = document.getElementById("depth");
   var $sen = document.getElementById("sen");
@@ -826,12 +835,14 @@
     store(K + "titles", $titles.value);
     store(K + "locations", $locations.value);
     store(K + "locmode", $locmode.value);
+    store(K + "cos", $cos.value);
+    store(K + "inds", $inds.value);
     store(K + "exact", $exact.checked ? "1" : "");
     store(K + "depth", $depth.value);
     store(K + "sen", JSON.stringify(chipValues($sen)));
     store(K + "size", JSON.stringify(chipValues($size)));
   }
-  [$titles, $locations, $locmode, $depth].forEach(function (el) {
+  [$titles, $locations, $locmode, $depth, $cos, $inds].forEach(function (el) {
     el.addEventListener("input", persist);
     el.addEventListener("change", persist);
   });
@@ -841,6 +852,8 @@
     $titles.value = recall(K + "titles") || "";
     $locations.value = recall(K + "locations") || "";
     $locmode.value = recall(K + "locmode") || "person";
+    $cos.value = recall(K + "cos") || "";
+    $inds.value = recall(K + "inds") || "";
     $exact.checked = recall(K + "exact") === "1";
     $depth.value = recall(K + "depth") || "3";
     setChips($sen, readList(K + "sen"));
@@ -904,7 +917,10 @@
 
     h += "</tbody></table>";
     h += '<div class="exports"><button id="btn-csv" type="button">Copy CSV</button>' +
-      '<button id="btn-md" type="button">Copy markdown</button></div>';
+      '<button id="btn-md" type="button">Copy markdown</button>' +
+      '<button class="primary" id="btn-xref" type="button">Cross-reference with Super Carl</button>' +
+      '</div>';
+    h += '<div id="xref"></div>';
     h += '<p class="hint" style="margin-top:12px">Apollo’s People Search returns the employer’s ' +
       "name only — no domain, headcount, industry or headquarters. Those need a separate, " +
       "credit-charging enrichment call.</p>";
@@ -912,6 +928,101 @@
     $out.innerHTML = h;
     document.getElementById("btn-csv").addEventListener("click", function () { copy(csv(r), this); });
     document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
+    document.getElementById("btn-xref").addEventListener("click", crossRef);
+  }
+
+  /* ---------- Super Carl cross-reference ----------
+     A second, opt-in step rather than part of the map. The Apollo map costs no
+     credits and takes seconds; this costs Claude tokens and Super Carl credits
+     and takes a minute, so it stays behind a button the user chooses to press. */
+
+  var XREF_TOP = 25;
+
+  async function crossRef() {
+    var r = lastResult;
+    if (!r || !r.companies.length) return;
+
+    var btn = document.getElementById("btn-xref");
+    var $x = document.getElementById("xref");
+    btn.disabled = true;
+    var started = Date.now();
+    var tick = setInterval(function () {
+      $x.innerHTML = '<p class="hint">Asking Super Carl about the top ' + XREF_TOP +
+        " employers \u2014 <b>" + Math.round((Date.now() - started) / 1000) + "s</b>.</p>";
+    }, 1000);
+    $x.innerHTML = '<p class="hint">Asking Super Carl\u2026</p>';
+
+    try {
+      var res = await fetch("/api/network-check", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          companies: r.companies.slice(0, XREF_TOP).map(function (c) { return c.name; }),
+          titles: (r.query && r.query.titles) || lines($titles)
+        })
+      });
+      var payload = await res.json().catch(function () { return null; });
+      clearInterval(tick);
+      btn.disabled = false;
+
+      if (!res.ok || !payload) {
+        $x.innerHTML = '<p class="err" style="margin-top:14px">' +
+          esc((payload && payload.error) || ("Cross-reference failed (" + res.status + ").")) + "</p>";
+        return;
+      }
+      renderXref(payload);
+    } catch (e) {
+      clearInterval(tick);
+      btn.disabled = false;
+      $x.innerHTML = '<p class="err" style="margin-top:14px">Could not reach the cross-reference endpoint.</p>';
+    }
+  }
+
+  function renderXref(x) {
+    var cos = Array.isArray(x.companies) ? x.companies : [];
+    var collisions = Array.isArray(x.collisions) ? x.collisions : [];
+    var h = '<h3 style="font-family:var(--f-display);font-size:19px;margin:26px 0 4px">Super Carl cross-reference</h3>';
+
+    h += '<p class="hint" style="margin-bottom:14px">A second engine on the same employers. ' +
+      'Corroboration means both engines independently see this talent there.' +
+      (typeof x.cost_usd === "number" ? " Cost <b>$" + x.cost_usd.toFixed(2) + "</b>." : "") + "</p>";
+
+    if (x.network_note) {
+      h += '<p class="partial">' + esc(x.network_note) + "</p>";
+    }
+
+    if (!cos.length) {
+      h += '<p class="empty">Super Carl found nobody with those titles at these employers. ' +
+        "That is a finding, not an error \u2014 it usually means the two indexes disagree, " +
+        "or the titles read differently there.</p>";
+    } else {
+      h += '<table class="mapt"><thead><tr><th>Company</th><th>Found</th><th>1st degree</th>' +
+        "<th>Prior contact</th><th>People</th></tr></thead><tbody>";
+      cos.forEach(function (c) {
+        h += "<tr>" +
+          '<td class="mapt__co">' + esc(c.name || "") + "</td>" +
+          '<td class="mapt__n">' + (c.found || 0) + "</td>" +
+          '<td class="mapt__n">' + (c.first_degree || 0) + "</td>" +
+          '<td class="mapt__n">' + (c.prior_contact || 0) + "</td>" +
+          '<td class="mapt__t">' + (Array.isArray(c.people) ? c.people.slice(0, 5).map(function (p) {
+            var label = esc(p.name || "?") + (p.title ? ' <span style="color:var(--ink-faint)">\u00b7 ' + esc(p.title) + "</span>" : "");
+            return p.linkedin_url
+              ? '<a href="' + esc(p.linkedin_url) + '" target="_blank" rel="noopener">' + label + "</a>"
+              : label;
+          }).join("<br>") : "") + "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+
+    if (collisions.length) {
+      h += '<p class="partial" style="margin-top:14px"><b>Name collisions, excluded from the counts above.</b><br>' +
+        collisions.map(function (c) {
+          return esc(c.asked || "?") + " \u2192 " + esc(c.matched || "?") +
+            (c.note ? " \u2014 " + esc(c.note) : "");
+        }).join("<br>") + "</p>";
+    }
+
+    document.getElementById("xref").innerHTML = h;
   }
 
   function csv(r) {
@@ -999,6 +1110,9 @@
         body: JSON.stringify({
           titles: titles,
           locations: lines($locations),
+          companyNames: lines($cos),
+          industries: $inds.value.split(",").map(function (x) { return x.trim(); })
+            .filter(Boolean),
           locationMode: $locmode.value,
           seniorities: chipValues($sen),
           employeeRanges: chipValues($size),
@@ -1037,6 +1151,8 @@
         !confirm("Clear the titles, locations, filters and the current map?")) return;
     $titles.value = "";
     $locations.value = "";
+    $cos.value = "";
+    $inds.value = "";
     $locmode.value = "person";
     $exact.checked = false;
     $depth.value = "3";
