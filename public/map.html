@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Map where a title sits — given job titles and locations, rank the employers by how many matching people they have.">
-<title>Talent Map</title>
+<meta name="description" content="Headcount mapping — how many people hold a given title at a given company in a given market.">
+<title>Org Map</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -543,6 +543,21 @@
   }
 
 
+  /* ---------- count grid ---------- */
+  .gridwrap { overflow-x: auto; }
+  table.grid { border-collapse: collapse; font-family: var(--f-chrome); font-size: 13px; min-width: 100%; }
+  table.grid th, table.grid td { padding: 9px 12px; border-bottom: 1px solid var(--hairline); text-align: right; white-space: nowrap; }
+  table.grid thead th { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ink-faint); border-bottom: 1px solid var(--hairline-hi); }
+  table.grid th.k, table.grid td.k { text-align: left; position: sticky; left: 0; background: var(--surface); }
+  table.grid thead th.k { background: var(--ground); }
+  .co { font-weight: 600; color: var(--ink); }
+  .loc { font-size: 11.5px; color: var(--ink-faint); }
+  .n { font-family: var(--f-data); font-size: 14px; color: var(--ink); }
+  .n--zero { color: var(--ink-faint); }
+  .n--none { color: var(--ink-faint); font-size: 12px; }
+  td.tot, th.tot { border-left: 1px solid var(--hairline-hi); font-weight: 600; }
+
   /* ---------- talent map ---------- */
   .opts { display: flex; flex-wrap: wrap; gap: 5px; }
   .opt {
@@ -611,7 +626,7 @@
       </svg>
       <div>
         <div class="brand__name">SD Talent</div>
-        <h2 class="gate__title">Talent Map</h2>
+        <h2 class="gate__title">Org Map</h2>
       </div>
     </div>
     <p class="gate__sub">Enter the access password to continue.</p>
@@ -633,8 +648,8 @@
       </svg>
     <div>
       <div class="brand__name">SD Talent</div>
-      <h1>Talent Map</h1>
-      <p>Name a title and a market. Get the size of that pool and the employers ranked by how many of those people they hold.</p>
+      <h1>Org Map</h1>
+      <p>How many people hold a title at a company, in a market. Exact counts rather than a sample — one row per company and location, one column per title.</p>
     </div>
   </div>
   <div class="masthead__actions">
@@ -652,68 +667,33 @@
 <main class="shell">
   <section class="pane pane--in">
     <div class="pane__head">
-      <h2>Search</h2>
+      <h2>Map</h2>
       <span class="chip" id="status">ready</span>
     </div>
 
     <div class="mode">
-      <label class="lbl" for="titles">Job titles</label>
-      <textarea class="field" id="titles" spellcheck="false" style="min-height:82px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
-        placeholder="One per line&#10;Head of Community&#10;Community Manager"></textarea>
-      <label class="check"><input type="checkbox" id="exact"> Exact titles only &mdash; do not widen to similar ones</label>
+      <label class="lbl" for="cos">Companies</label>
+      <textarea class="field" id="cos" spellcheck="false" style="min-height:78px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line &mdash; name or domain&#10;salesforce.com&#10;HubSpot"></textarea>
+      <p class="hint">A domain is exact and free. A <b>name</b> is matched partially &mdash;
+        &ldquo;Salesforce&rdquo; also pulls in Salesforce Ventures and Trailhead &mdash; and costs
+        1 Apollo credit to resolve. Each row shows what it actually counted.</p>
 
       <label class="lbl" for="locations">Locations</label>
-      <textarea class="field" id="locations" spellcheck="false" style="min-height:64px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
-        placeholder="One per line&#10;United States&#10;New York, New York"></textarea>
+      <textarea class="field" id="locations" spellcheck="false" style="min-height:56px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line &mdash; leave empty for everywhere&#10;New York&#10;San Francisco"></textarea>
       <select class="field" id="locmode" aria-label="What the location applies to">
         <option value="person">Where the person lives</option>
         <option value="organization">Where the company is headquartered</option>
       </select>
 
-      <label class="lbl" for="cos">Companies <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
-      <textarea class="field" id="cos" spellcheck="false" style="min-height:52px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
-        placeholder="One per line &mdash; name or domain&#10;Headspace&#10;calm.com"></textarea>
+      <label class="lbl" for="titles">Job titles</label>
+      <textarea class="field" id="titles" spellcheck="false" style="min-height:78px;resize:vertical;font-family:var(--f-chrome);font-size:13px"
+        placeholder="One per line &mdash; these become the columns&#10;Account Executive&#10;Sales Development Representative"></textarea>
+      <label class="check"><input type="checkbox" id="exact"> Exact titles only &mdash; do not widen to similar ones</label>
 
-      <label class="lbl" for="inds">Industry / type <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
-      <input class="field" id="inds" placeholder="e.g. mental health, fitness">
-
-      <label class="lbl">Seniority <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
-      <div class="opts" id="sen">
-            <label class="opt"><input type="checkbox" name="sen" value="owner">Owner</label>
-            <label class="opt"><input type="checkbox" name="sen" value="founder">Founder</label>
-            <label class="opt"><input type="checkbox" name="sen" value="c_suite">C-suite</label>
-            <label class="opt"><input type="checkbox" name="sen" value="partner">Partner</label>
-            <label class="opt"><input type="checkbox" name="sen" value="vp">VP</label>
-            <label class="opt"><input type="checkbox" name="sen" value="head">Head</label>
-            <label class="opt"><input type="checkbox" name="sen" value="director">Director</label>
-            <label class="opt"><input type="checkbox" name="sen" value="manager">Manager</label>
-            <label class="opt"><input type="checkbox" name="sen" value="senior">Senior</label>
-            <label class="opt"><input type="checkbox" name="sen" value="entry">Entry</label>
-            <label class="opt"><input type="checkbox" name="sen" value="intern">Intern</label>
-      </div>
-
-      <label class="lbl">Company size <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink-faint)">&mdash; optional</span></label>
-      <div class="opts" id="size">
-            <label class="opt"><input type="checkbox" name="size" value="1,10">1–10</label>
-            <label class="opt"><input type="checkbox" name="size" value="11,50">11–50</label>
-            <label class="opt"><input type="checkbox" name="size" value="51,200">51–200</label>
-            <label class="opt"><input type="checkbox" name="size" value="201,500">201–500</label>
-            <label class="opt"><input type="checkbox" name="size" value="501,1000">501–1k</label>
-            <label class="opt"><input type="checkbox" name="size" value="1001,5000">1k–5k</label>
-            <label class="opt"><input type="checkbox" name="size" value="5001,10000">5k–10k</label>
-            <label class="opt"><input type="checkbox" name="size" value="10001,1000000">10k+</label>
-      </div>
-
-      <label class="lbl" for="depth">Sample depth</label>
-      <select class="field" id="depth" aria-label="Sample depth">
-        <option value="3">300 people &mdash; quick read</option>
-        <option value="5">500 people</option>
-        <option value="10">1,000 people &mdash; slowest, steadiest ranking</option>
-        <option value="1">100 people &mdash; fastest</option>
-      </select>
-
-      <button class="primary wide" id="btn-run" type="button">Map the market</button>
-      <p class="hint" id="run-hint">Apollo People Search costs no credits, so depth is free — it only costs time.</p>
+      <button class="primary wide" id="btn-run" type="button">Build the map</button>
+      <p class="hint" id="run-hint">Counts are exact and cost no Apollo credits. Only resolving a company name does.</p>
       <p class="err" id="err" hidden></p>
     </div>
   </section>
@@ -730,8 +710,6 @@
   function recall(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 
   /* ---------- access gate ---------- */
-  /* Same curtain and password as the other two pages. It is a curtain, not a
-     lock — the password is in this file and /api/apollo-map is open. */
   var GATE_PASSWORD = "william27";
   var GATE_KEY = "sdtalent:unlocked";
   var $gate = document.getElementById("gate");
@@ -739,14 +717,8 @@
   var $gateErr = document.getElementById("gate-err");
 
   function tryGate() {
-    if ($gatePw.value.trim() === GATE_PASSWORD) {
-      $gate.hidden = true;
-      store(GATE_KEY, "1");
-    } else {
-      $gateErr.hidden = false;
-      $gatePw.value = "";
-      $gatePw.focus();
-    }
+    if ($gatePw.value.trim() === GATE_PASSWORD) { $gate.hidden = true; store(GATE_KEY, "1"); }
+    else { $gateErr.hidden = false; $gatePw.value = ""; $gatePw.focus(); }
   }
   document.getElementById("gate-go").addEventListener("click", tryGate);
   $gatePw.addEventListener("keydown", function (e) {
@@ -754,318 +726,173 @@
   });
   document.getElementById("btn-lock").addEventListener("click", function () {
     try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
-    $gatePw.value = "";
-    $gateErr.hidden = true;
-    $gate.hidden = false;
-    $gatePw.focus();
+    $gatePw.value = ""; $gateErr.hidden = true; $gate.hidden = false; $gatePw.focus();
   });
   if (recall(GATE_KEY) === "1") $gate.hidden = true; else $gatePw.focus();
 
   /* ---------- elements ---------- */
 
-  var $titles = document.getElementById("titles");
+  var $cos = document.getElementById("cos");
   var $locations = document.getElementById("locations");
   var $locmode = document.getElementById("locmode");
-  var $cos = document.getElementById("cos");
-  var $inds = document.getElementById("inds");
+  var $titles = document.getElementById("titles");
   var $exact = document.getElementById("exact");
-  var $depth = document.getElementById("depth");
-  var $sen = document.getElementById("sen");
-  var $size = document.getElementById("size");
   var $run = document.getElementById("btn-run");
   var $hint = document.getElementById("run-hint");
   var $err = document.getElementById("err");
   var $status = document.getElementById("status");
   var $out = document.getElementById("out");
 
-  var IDLE_HINT = "Apollo People Search costs no credits, so depth is free — it only costs time.";
+  var IDLE_HINT = "Counts are exact and cost no Apollo credits. Only resolving a company name does.";
   var lastResult = null;
 
-  var EMPTY = '<p class="empty">Name one or more job titles on the left, add the markets you ' +
-    'care about, and map it. You get the size of the pool and the employers ranked by how ' +
-    'many of those people they hold.</p>';
+  var EMPTY = '<p class="empty">List the companies you care about, the markets, and the titles. ' +
+    'Every cell is an exact count of how many people hold that title there — not a sample.</p>';
   $out.innerHTML = EMPTY;
 
-  function setStatus(text, cls) {
-    $status.textContent = text;
-    $status.className = "chip" + (cls ? " " + cls : "");
-  }
-
+  function setStatus(t, c) { $status.textContent = t; $status.className = "chip" + (c ? " " + c : ""); }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-
   function lines(el) {
     return el.value.split("\n").map(function (l) { return l.trim(); })
       .filter(function (l) { return l.length > 0; });
   }
-
-  /* Chip groups behave like checkboxes; the class just mirrors checked state. */
-  function wireChips(root) {
-    root.addEventListener("change", function (ev) {
-      var input = ev.target;
-      if (!input || input.type !== "checkbox") return;
-      input.closest(".opt").classList.toggle("is-on", input.checked);
-      persist();
-    });
-  }
-  function chipValues(root) {
-    return [].slice.call(root.querySelectorAll("input:checked")).map(function (i) { return i.value; });
-  }
-  function setChips(root, values) {
-    [].slice.call(root.querySelectorAll("input")).forEach(function (i) {
-      i.checked = values.indexOf(i.value) !== -1;
-      i.closest(".opt").classList.toggle("is-on", i.checked);
-    });
-  }
-  wireChips($sen);
-  wireChips($size);
+  function num(n) { return n.toLocaleString(); }
 
   /* ---------- persistence ---------- */
 
-  var K = "talent-map:";
-  function readList(key) {
-    try {
-      var v = JSON.parse(recall(key) || "[]");
-      return Array.isArray(v) ? v.filter(function (x) { return typeof x === "string"; }) : [];
-    } catch (e) {
-      return []; // an older or hand-edited value is not worth failing a page load over
-    }
-  }
+  var K = "org-map:";
   function persist() {
-    store(K + "titles", $titles.value);
+    store(K + "cos", $cos.value);
     store(K + "locations", $locations.value);
     store(K + "locmode", $locmode.value);
-    store(K + "cos", $cos.value);
-    store(K + "inds", $inds.value);
+    store(K + "titles", $titles.value);
     store(K + "exact", $exact.checked ? "1" : "");
-    store(K + "depth", $depth.value);
-    store(K + "sen", JSON.stringify(chipValues($sen)));
-    store(K + "size", JSON.stringify(chipValues($size)));
   }
-  [$titles, $locations, $locmode, $depth, $cos, $inds].forEach(function (el) {
+  [$cos, $locations, $locmode, $titles].forEach(function (el) {
     el.addEventListener("input", persist);
     el.addEventListener("change", persist);
   });
   $exact.addEventListener("change", persist);
 
-  function restore() {
-    $titles.value = recall(K + "titles") || "";
-    $locations.value = recall(K + "locations") || "";
-    $locmode.value = recall(K + "locmode") || "person";
-    $cos.value = recall(K + "cos") || "";
-    $inds.value = recall(K + "inds") || "";
-    $exact.checked = recall(K + "exact") === "1";
-    $depth.value = recall(K + "depth") || "3";
-    setChips($sen, readList(K + "sen"));
-    setChips($size, readList(K + "size"));
-  }
-  restore();
+  $cos.value = recall(K + "cos") || "";
+  $locations.value = recall(K + "locations") || "";
+  $locmode.value = recall(K + "locmode") || "person";
+  $titles.value = recall(K + "titles") || "";
+  $exact.checked = recall(K + "exact") === "1";
 
   /* ---------- render ---------- */
 
-  function num(n) { return n.toLocaleString(); }
-
   function render(r) {
-    var top = r.companies.length ? r.companies[0].people : 0;
-    var h = "";
+    var titles = r.titles || [];
+    var rows = r.rows || [];
 
-    h += '<div class="stats">' +
-      '<div class="stat"><div class="stat__k">People in market</div>' +
-        '<div class="stat__v">' + num(r.totalEntries) + "</div>" +
-        '<div class="stat__n">matching every filter</div></div>' +
-      '<div class="stat"><div class="stat__k">Sampled</div>' +
-        '<div class="stat__v">' + num(r.sampled) + "</div>" +
-        '<div class="stat__n">' + r.pagesFetched + (r.pagesFetched === 1 ? " page" : " pages") + " read</div></div>" +
-      '<div class="stat"><div class="stat__k">Employers</div>' +
-        '<div class="stat__v">' + num(r.distinctCompanies) + "</div>" +
-        '<div class="stat__n">in the sample</div></div>' +
-      "</div>";
-
-    // A company name is resolved by partial match, so "Headspace" can become six
-    // companies including unrelated ones. The user filtered on all of them and
-    // has to be able to see that.
-    if (Array.isArray(r.resolvedCompanies) && r.resolvedCompanies.length) {
-      var names = r.resolvedCompanies.map(function (c) {
-        return esc(c.name) + (c.domain ? ' <span style="color:var(--ink-faint)">' + esc(c.domain) + "</span>" : "");
-      });
-      h += '<p class="partial"><b>Your company filter matched ' + names.length +
-        (names.length === 1 ? " company" : " companies") + ".</b> " +
-        "Apollo matches names partially, so near-matches are included and the map " +
-        "covers all of them:<br>" + names.join(" &nbsp;\u00b7&nbsp; ") + "</p>";
-    }
-
-    if (r.partial) {
-      h += '<p class="partial"><b>This ranking is from a sample.</b> ' +
-        num(r.sampled) + " of " + num(r.totalEntries) + " people were read, so treat the " +
-        "order as indicative and the counts as a floor. Raise the sample depth for a " +
-        "steadier ranking.</p>";
-    }
-
-    if (!r.companies.length) {
-      h += '<p class="empty">No people matched. Loosen a filter — exact titles and ' +
-        "seniority are the two that most often empty a search.</p>";
-      $out.innerHTML = h;
-      return;
-    }
-
-    h += '<table class="mapt"><thead><tr>' +
-      "<th></th><th>Company</th><th>People</th><th>With email</th><th>Titles seen</th>" +
-      "</tr></thead><tbody>";
-
-    r.companies.forEach(function (c, i) {
-      var pct = (c.share * 100).toFixed(1);
-      var width = top ? Math.round((c.people / top) * 100) : 0;
-      h += "<tr>" +
-        '<td class="mapt__rank">' + (i + 1) + "</td>" +
-        '<td><div class="mapt__co">' + esc(c.name) + "</div>" +
-          '<div class="bar"><i style="width:' + width + '%"></i></div></td>' +
-        '<td class="mapt__n">' + c.people + ' <span style="color:var(--ink-faint)">&middot; ' + pct + "%</span></td>" +
-        '<td class="mapt__n">' + c.reachable + "</td>" +
-        '<td class="mapt__t">' + c.titles.slice(0, 4).map(function (t) {
-          return esc(t.title) + ' <span style="color:var(--ink-faint)">(' + t.count + ")</span>";
-        }).join("<br>") +
-        (c.titles.length > 4 ? '<div style="color:var(--ink-faint)">+' + (c.titles.length - 4) + " more</div>" : "") +
-        "</td></tr>";
+    // Shade cells against the largest number in the grid so the concentrations
+    // are findable without reading every figure.
+    var max = 0;
+    rows.forEach(function (row) {
+      row.cells.forEach(function (c) { if (typeof c.apollo === "number" && c.apollo > max) max = c.apollo; });
     });
 
-    h += "</tbody></table>";
+    var colTotals = titles.map(function (_, i) {
+      return rows.reduce(function (sum, row) {
+        var v = row.cells[i] && row.cells[i].apollo;
+        return sum + (typeof v === "number" ? v : 0);
+      }, 0);
+    });
+
+    var h = "";
+    var widened = rows.filter(function (row) { return (row.resolvedNames || []).length > 1; });
+    var unresolved = rows.filter(function (row) { return row.unresolved; });
+
+    if (unresolved.length) {
+      h += '<p class="partial"><b>Apollo found no company matching ' +
+        unresolved.map(function (row) { return esc(row.company); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(", ") +
+        '.</b> Those rows are blank rather than filled with a whole-market number. ' +
+        "Try the domain instead of the name.</p>";
+    }
+
+    h += '<div class="gridwrap"><table class="grid"><thead><tr>' +
+      '<th class="k">Company</th>' +
+      titles.map(function (t) { return "<th>" + esc(t) + "</th>"; }).join("") +
+      '<th class="tot">Total</th></tr></thead><tbody>';
+
+    rows.forEach(function (row) {
+      var rowTotal = row.cells.reduce(function (s, c) {
+        return s + (typeof c.apollo === "number" ? c.apollo : 0);
+      }, 0);
+      h += "<tr><td class=\"k\"><span class=\"co\">" + esc(row.company) + "</span>" +
+        (row.location ? '<br><span class="loc">' + esc(row.location) + "</span>" : "") + "</td>";
+      row.cells.forEach(function (c) {
+        if (typeof c.apollo !== "number") {
+          h += '<td class="n--none">—</td>';
+          return;
+        }
+        var pct = max ? c.apollo / max : 0;
+        var bg = c.apollo > 0 ? ' style="background:rgba(208,138,16,' + (0.04 + pct * 0.22).toFixed(3) + ')"' : "";
+        h += "<td" + bg + '><span class="n' + (c.apollo ? "" : " n--zero") + '">' + num(c.apollo) + "</span></td>";
+      });
+      h += '<td class="tot n">' + num(rowTotal) + "</td></tr>";
+    });
+
+    h += '<tr><td class="k"><span class="loc">All rows</span></td>' +
+      colTotals.map(function (t) { return '<td class="tot n">' + num(t) + "</td>"; }).join("") +
+      '<td class="tot n">' + num(colTotals.reduce(function (a, b) { return a + b; }, 0)) + "</td></tr>";
+    h += "</tbody></table></div>";
+
+    if (widened.length) {
+      h += '<p class="partial" style="margin-top:16px"><b>These rows count more than one company.</b> ' +
+        "Apollo matches a name partially, so the row covers every match:<br>" +
+        widened.map(function (row) {
+          return "<b>" + esc(row.company) + "</b> → " + row.resolvedNames.slice(0, 8).map(esc).join(", ") +
+            (row.resolvedNames.length > 8 ? " and " + (row.resolvedNames.length - 8) + " more" : "");
+        }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join("<br>") +
+        "<br>Use the domain to count one company only.</p>";
+    }
+
+    if (r.failed) {
+      h += '<p class="partial" style="margin-top:14px">' + r.failed +
+        " cell(s) failed to load and show as — rather than zero.</p>";
+    }
+
     h += '<div class="exports"><button id="btn-csv" type="button">Copy CSV</button>' +
-      '<button id="btn-md" type="button">Copy markdown</button>' +
-      '<button class="primary" id="btn-xref" type="button">Cross-reference with Super Carl</button>' +
-      '</div>';
-    h += '<div id="xref"></div>';
-    h += '<p class="hint" style="margin-top:12px">Apollo’s People Search returns the employer’s ' +
-      "name only — no domain, headcount, industry or headquarters. Those need a separate, " +
-      "credit-charging enrichment call.</p>";
+      '<button id="btn-md" type="button">Copy markdown</button></div>';
+    h += '<p class="hint" style="margin-top:12px">Counts are Apollo’s indexed people, which is a ' +
+      "sample of reality rather than the company’s real headcount. Compare them to each other, " +
+      "not to a payroll." + (r.orgCreditsSpent ? " Resolving names cost " + r.orgCreditsSpent +
+      " Apollo credit" + (r.orgCreditsSpent === 1 ? "" : "s") + "." : "") + "</p>";
 
     $out.innerHTML = h;
     document.getElementById("btn-csv").addEventListener("click", function () { copy(csv(r), this); });
     document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
-    document.getElementById("btn-xref").addEventListener("click", crossRef);
   }
 
-  /* ---------- Super Carl cross-reference ----------
-     A second, opt-in step rather than part of the map. The Apollo map costs no
-     credits and takes seconds; this costs Claude tokens and Super Carl credits
-     and takes a minute, so it stays behind a button the user chooses to press. */
-
-  var XREF_TOP = 25;
-
-  async function crossRef() {
-    var r = lastResult;
-    if (!r || !r.companies.length) return;
-
-    var btn = document.getElementById("btn-xref");
-    var $x = document.getElementById("xref");
-    btn.disabled = true;
-    var started = Date.now();
-    var tick = setInterval(function () {
-      $x.innerHTML = '<p class="hint">Asking Super Carl about the top ' + XREF_TOP +
-        " employers \u2014 <b>" + Math.round((Date.now() - started) / 1000) + "s</b>.</p>";
-    }, 1000);
-    $x.innerHTML = '<p class="hint">Asking Super Carl\u2026</p>';
-
-    try {
-      var res = await fetch("/api/network-check", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          companies: r.companies.slice(0, XREF_TOP).map(function (c) { return c.name; }),
-          titles: (r.query && r.query.titles) || lines($titles)
-        })
-      });
-      var payload = await res.json().catch(function () { return null; });
-      clearInterval(tick);
-      btn.disabled = false;
-
-      if (!res.ok || !payload) {
-        $x.innerHTML = '<p class="err" style="margin-top:14px">' +
-          esc((payload && payload.error) || ("Cross-reference failed (" + res.status + ").")) + "</p>";
-        return;
-      }
-      renderXref(payload);
-    } catch (e) {
-      clearInterval(tick);
-      btn.disabled = false;
-      $x.innerHTML = '<p class="err" style="margin-top:14px">Could not reach the cross-reference endpoint.</p>';
-    }
-  }
-
-  function renderXref(x) {
-    var cos = Array.isArray(x.companies) ? x.companies : [];
-    var collisions = Array.isArray(x.collisions) ? x.collisions : [];
-    var h = '<h3 style="font-family:var(--f-display);font-size:19px;margin:26px 0 4px">Super Carl cross-reference</h3>';
-
-    h += '<p class="hint" style="margin-bottom:14px">A second engine on the same employers. ' +
-      'Corroboration means both engines independently see this talent there.' +
-      (typeof x.cost_usd === "number" ? " Cost <b>$" + x.cost_usd.toFixed(2) + "</b>." : "") + "</p>";
-
-    if (x.network_note) {
-      h += '<p class="partial">' + esc(x.network_note) + "</p>";
-    }
-
-    if (!cos.length) {
-      h += '<p class="empty">Super Carl found nobody with those titles at these employers. ' +
-        "That is a finding, not an error \u2014 it usually means the two indexes disagree, " +
-        "or the titles read differently there.</p>";
-    } else {
-      h += '<table class="mapt"><thead><tr><th>Company</th><th>Found</th><th>1st degree</th>' +
-        "<th>Prior contact</th><th>People</th></tr></thead><tbody>";
-      cos.forEach(function (c) {
-        h += "<tr>" +
-          '<td class="mapt__co">' + esc(c.name || "") + "</td>" +
-          '<td class="mapt__n">' + (c.found || 0) + "</td>" +
-          '<td class="mapt__n">' + (c.first_degree || 0) + "</td>" +
-          '<td class="mapt__n">' + (c.prior_contact || 0) + "</td>" +
-          '<td class="mapt__t">' + (Array.isArray(c.people) ? c.people.slice(0, 5).map(function (p) {
-            var label = esc(p.name || "?") + (p.title ? ' <span style="color:var(--ink-faint)">\u00b7 ' + esc(p.title) + "</span>" : "");
-            return p.linkedin_url
-              ? '<a href="' + esc(p.linkedin_url) + '" target="_blank" rel="noopener">' + label + "</a>"
-              : label;
-          }).join("<br>") : "") + "</td></tr>";
-      });
-      h += "</tbody></table>";
-    }
-
-    if (collisions.length) {
-      h += '<p class="partial" style="margin-top:14px"><b>Name collisions, excluded from the counts above.</b><br>' +
-        collisions.map(function (c) {
-          return esc(c.asked || "?") + " \u2192 " + esc(c.matched || "?") +
-            (c.note ? " \u2014 " + esc(c.note) : "");
-        }).join("<br>") + "</p>";
-    }
-
-    document.getElementById("xref").innerHTML = h;
-  }
+  function cellVal(c) { return typeof c.apollo === "number" ? String(c.apollo) : ""; }
 
   function csv(r) {
     function cell(v) {
       var s = String(v);
       return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     }
-    var rows = [["Company", "People", "Share", "With email", "Titles seen"]];
-    r.companies.forEach(function (c) {
-      rows.push([c.name, c.people, (c.share * 100).toFixed(1) + "%", c.reachable,
-        c.titles.map(function (t) { return t.title + " (" + t.count + ")"; }).join("; ")]);
+    var out = [["Company", "Location"].concat(r.titles).concat(["Total"])];
+    r.rows.forEach(function (row) {
+      var total = row.cells.reduce(function (s, c) { return s + (typeof c.apollo === "number" ? c.apollo : 0); }, 0);
+      out.push([row.company, row.location || ""].concat(row.cells.map(cellVal)).concat([String(total)]));
     });
-    return rows.map(function (row) { return row.map(cell).join(","); }).join("\n");
+    return out.map(function (row) { return row.map(cell).join(","); }).join("\n");
   }
 
   function md(r) {
-    var q = r.query;
-    var out = ["# Talent map — " + q.titles.join(", ") +
-      (q.locations.length ? " in " + q.locations.join(", ") : ""), ""];
-    out.push("- **People in market:** " + num(r.totalEntries));
-    out.push("- **Sampled:** " + num(r.sampled) + " across " + r.pagesFetched + " page(s)");
-    out.push("- **Employers in sample:** " + num(r.distinctCompanies));
-    if (r.partial) out.push("- _Ranking is from a sample; counts are a floor._");
-    out.push("", "| # | Company | People | Share | With email |", "|---|---|---|---|---|");
-    r.companies.forEach(function (c, i) {
-      out.push("| " + (i + 1) + " | " + c.name + " | " + c.people + " | " +
-        (c.share * 100).toFixed(1) + "% | " + c.reachable + " |");
+    var out = ["| Company | Location | " + r.titles.join(" | ") + " | Total |",
+               "|---|---|" + r.titles.map(function () { return "---|"; }).join("") + "---|"];
+    r.rows.forEach(function (row) {
+      var total = row.cells.reduce(function (s, c) { return s + (typeof c.apollo === "number" ? c.apollo : 0); }, 0);
+      out.push("| " + row.company + " | " + (row.location || "—") + " | " +
+        row.cells.map(function (c) { return typeof c.apollo === "number" ? num(c.apollo) : "—"; }).join(" | ") +
+        " | " + num(total) + " |");
     });
     return out.join("\n");
   }
@@ -1082,11 +909,8 @@
   }
   function fallback(text, done) {
     var ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
     try { document.execCommand("copy"); done(); } catch (e) { /* nothing to do */ }
     document.body.removeChild(ta);
   }
@@ -1094,63 +918,49 @@
   /* ---------- run ---------- */
 
   async function run() {
+    var companies = lines($cos);
     var titles = lines($titles);
-    if (!titles.length) {
+    if (!companies.length || !titles.length) {
       $err.hidden = false;
-      $err.textContent = "Give at least one job title.";
-      setStatus("need a title", "bad");
+      $err.textContent = !companies.length ? "Add at least one company." : "Add at least one job title.";
+      setStatus("need input", "bad");
       return;
     }
 
     $err.hidden = true;
     $run.disabled = true;
-    setStatus("mapping", "md");
-
+    setStatus("counting", "md");
     var started = Date.now();
-    var ticker = setInterval(function () {
-      $hint.innerHTML = "Reading Apollo — <b>" +
-        Math.round((Date.now() - started) / 1000) + "s</b>.";
+    var tick = setInterval(function () {
+      $hint.innerHTML = "Counting — <b>" + Math.round((Date.now() - started) / 1000) + "s</b>.";
     }, 1000);
 
-    function finish(text, cls) {
-      clearInterval(ticker);
-      $run.disabled = false;
-      $hint.textContent = IDLE_HINT;
-      setStatus(text, cls);
+    function finish(t, c) {
+      clearInterval(tick); $run.disabled = false; $hint.textContent = IDLE_HINT; setStatus(t, c);
     }
 
     try {
-      var res = await fetch("/api/apollo-map", {
+      var res = await fetch("/api/org-map", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          titles: titles,
+          companies: companies,
           locations: lines($locations),
-          companyNames: lines($cos),
-          industries: $inds.value.split(",").map(function (x) { return x.trim(); })
-            .filter(Boolean),
+          titles: titles,
           locationMode: $locmode.value,
-          seniorities: chipValues($sen),
-          employeeRanges: chipValues($size),
-          exactTitles: $exact.checked,
-          depth: parseInt($depth.value, 10)
+          exactTitles: $exact.checked
         })
       });
-
       var payload = await res.json().catch(function () { return null; });
-
       if (!res.ok || !payload) {
-        var msg = (payload && payload.error) || ("Request failed (" + res.status + ").");
-        if (payload && payload.detail) msg += "\n" + payload.detail;
         $err.hidden = false;
-        $err.textContent = msg;
+        $err.textContent = (payload && payload.error) || ("Request failed (" + res.status + ").");
         finish("failed", "bad");
         return;
       }
-
       lastResult = payload;
       render(payload);
-      finish(payload.distinctCompanies + " employers", "ok");
+      finish(payload.cells + " cells", "ok");
     } catch (e) {
       $err.hidden = false;
       $err.textContent = "Could not reach the map endpoint.\n" + (e && e.message ? e.message : e);
@@ -1160,26 +970,17 @@
 
   $run.addEventListener("click", run);
 
-  /* ---------- new map ---------- */
-
   document.getElementById("btn-new").addEventListener("click", function () {
-    if ($titles.value.trim() &&
-        !confirm("Clear the titles, locations, filters and the current map?")) return;
-    $titles.value = "";
-    $locations.value = "";
-    $cos.value = "";
-    $inds.value = "";
-    $locmode.value = "person";
-    $exact.checked = false;
-    $depth.value = "3";
-    setChips($sen, []);
-    setChips($size, []);
+    if (($cos.value.trim() || $titles.value.trim()) &&
+        !confirm("Clear the companies, locations, titles and the current map?")) return;
+    $cos.value = ""; $locations.value = ""; $titles.value = "";
+    $locmode.value = "person"; $exact.checked = false;
     persist();
     lastResult = null;
     $out.innerHTML = EMPTY;
     $err.hidden = true;
     setStatus("ready");
-    $titles.focus();
+    $cos.focus();
   });
 })();
 </script>
