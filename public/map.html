@@ -912,7 +912,7 @@
         " cell(s) failed to load and show as — rather than zero.</p>";
     }
 
-    h += '<div class="exports"><button id="btn-csv" type="button">Copy CSV</button>' +
+    h += '<div class="exports"><button class="primary" id="btn-csv" type="button">Export to CSV</button>' +
       '<button id="btn-md" type="button">Copy markdown</button></div>';
     h += '<p class="hint" style="margin-top:12px">Counts are Apollo’s indexed people, which is a ' +
       "sample of reality rather than the company’s real headcount. Compare them to each other, " +
@@ -925,7 +925,9 @@
     [].slice.call(document.querySelectorAll("td.cell")).forEach(function (td) {
       td.addEventListener("click", function () { pullPeople(td); });
     });
-    document.getElementById("btn-csv").addEventListener("click", function () { copy(csv(r), this); });
+    document.getElementById("btn-csv").addEventListener("click", function () {
+      download(csv(r), "org-map-" + stamp() + ".csv", this);
+    });
     document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
   }
 
@@ -1045,13 +1047,20 @@
         '<td class="pten">' + months(pn.experience_months) + "</td></tr>";
     });
     h += "</tbody></table>";
-    h += '<div class="exports"><button id="btn-pcsv" type="button">Copy list as CSV</button></div>';
+    h += '<div class="exports"><button class="primary" id="btn-pcsv" type="button">Export to CSV</button>' +
+      '<button id="btn-pcopy" type="button">Copy to clipboard</button></div>';
     if (x.truncated) {
       h += '<p class="hint" style="margin-top:10px">This is the first ' + people.length +
         " of " + num(x.total_matching) + ". Narrow the location or the title to get a workable slice.</p>";
     }
     $p.innerHTML = h;
-    document.getElementById("btn-pcsv").addEventListener("click", function () { copy(peopleCsv(x), this); });
+    var fname = [slug(x._co), slug(x._title), slug(x._loc)].filter(Boolean).join("-") + ".csv";
+    document.getElementById("btn-pcsv").addEventListener("click", function () {
+      download(peopleCsv(x), fname, this);
+    });
+    document.getElementById("btn-pcopy").addEventListener("click", function () {
+      copy(peopleCsv(x), this);
+    });
   }
 
   function peopleCsv(x) {
@@ -1094,6 +1103,36 @@
     });
     return out.join("\n");
   }
+
+  /* "Export" means a file, not the clipboard. A prospecting list wants to land
+     in a spreadsheet or an ATS, so hand over a real .csv. */
+  function download(text, filename, btn) {
+    try {
+      var blob = new Blob([ "\ufeff" + text ], { type: "text/csv;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoking immediately can cancel the download in some browsers.
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      var was = btn.textContent;
+      btn.textContent = "Downloaded";
+      setTimeout(function () { btn.textContent = was; }, 1500);
+    } catch (e) {
+      // A blocked download should not lose the data — fall back to the clipboard.
+      copy(text, btn);
+    }
+  }
+
+  /* A filename someone can find again in their downloads folder. */
+  function slug(s) {
+    return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "").slice(0, 40) || "export";
+  }
+  function stamp() { return new Date().toISOString().slice(0, 10); }
 
   function copy(text, btn) {
     var done = function () {
