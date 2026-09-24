@@ -881,6 +881,19 @@
         '<div class="stat__n">in the sample</div></div>' +
       "</div>";
 
+    // A company name is resolved by partial match, so "Headspace" can become six
+    // companies including unrelated ones. The user filtered on all of them and
+    // has to be able to see that.
+    if (Array.isArray(r.resolvedCompanies) && r.resolvedCompanies.length) {
+      var names = r.resolvedCompanies.map(function (c) {
+        return esc(c.name) + (c.domain ? ' <span style="color:var(--ink-faint)">' + esc(c.domain) + "</span>" : "");
+      });
+      h += '<p class="partial"><b>Your company filter matched ' + names.length +
+        (names.length === 1 ? " company" : " companies") + ".</b> " +
+        "Apollo matches names partially, so near-matches are included and the map " +
+        "covers all of them:<br>" + names.join(" &nbsp;\u00b7&nbsp; ") + "</p>";
+    }
+
     if (r.partial) {
       h += '<p class="partial"><b>This ranking is from a sample.</b> ' +
         num(r.sampled) + " of " + num(r.totalEntries) + " people were read, so treat the " +
