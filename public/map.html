@@ -558,6 +558,26 @@
   .n--none { color: var(--ink-faint); font-size: 12px; }
   td.tot, th.tot { border-left: 1px solid var(--hairline-hi); font-weight: 600; }
 
+  /* ---------- people list ---------- */
+  table.grid td.cell { cursor: pointer; }
+  table.grid td.cell:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+  table.grid td.cell.is-on { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .plist { margin-top: 26px; }
+  .plist h3 { font-family: var(--f-display); font-size: 19px; margin: 0 0 3px; }
+  table.people { width: 100%; border-collapse: collapse; font-family: var(--f-chrome); font-size: 13px; }
+  table.people th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); padding: 0 10px 7px 0;
+    border-bottom: 1px solid var(--hairline-hi); }
+  table.people td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  .pname { font-weight: 600; color: var(--ink); }
+  .pmeta { color: var(--ink-muted); font-size: 12px; }
+  .pten { font-family: var(--f-data); font-size: 12.5px; white-space: nowrap; }
+  /* Time in seat is the whole game in sales recruiting: long enough to have a
+     number, not so long they are cemented. */
+  .pten--ripe { color: var(--good); font-weight: 600; }
+  .conflict { font-size: 11px; color: var(--warn); background: var(--warn-soft);
+    border: 1px solid var(--warn); border-radius: 2px; padding: 1px 5px; white-space: nowrap; }
+
   /* ---------- talent map ---------- */
   .opts { display: flex; flex-wrap: wrap; gap: 5px; }
   .opt {
@@ -833,7 +853,12 @@
         }
         var pct = max ? c.apollo / max : 0;
         var bg = c.apollo > 0 ? ' style="background:rgba(208,138,16,' + (0.04 + pct * 0.22).toFixed(3) + ')"' : "";
-        h += "<td" + bg + '><span class="n' + (c.apollo ? "" : " n--zero") + '">' + num(c.apollo) + "</span></td>";
+        // A cell with nobody in it has no list to pull, so it is not clickable.
+        var click = c.apollo > 0
+          ? ' class="cell" data-co="' + esc(row.company) + '" data-loc="' + esc(row.location || "") +
+            '" data-title="' + esc(c.title) + '" title="Click for the people"'
+          : "";
+        h += "<td" + click + bg + '><span class="n' + (c.apollo ? "" : " n--zero") + '">' + num(c.apollo) + "</span></td>";
       });
       h += '<td class="tot n">' + num(rowTotal) + "</td></tr>";
     });
@@ -865,9 +890,135 @@
       "not to a payroll." + (r.orgCreditsSpent ? " Resolving names cost " + r.orgCreditsSpent +
       " Apollo credit" + (r.orgCreditsSpent === 1 ? "" : "s") + "." : "") + "</p>";
 
+    h += '<div class="plist" id="plist"></div>';
+
     $out.innerHTML = h;
+    [].slice.call(document.querySelectorAll("td.cell")).forEach(function (td) {
+      td.addEventListener("click", function () { pullPeople(td); });
+    });
     document.getElementById("btn-csv").addEventListener("click", function () { copy(csv(r), this); });
     document.getElementById("btn-md").addEventListener("click", function () { copy(md(r), this); });
+  }
+
+  /* ---------- people in a cell ----------
+     Apollo counts but cannot name: its People Search returns an obfuscated
+     surname, no LinkedIn and no location value. The names come from Super
+     Carl, which costs credits, so this is a click rather than part of the map. */
+
+  var lastPeople = null;
+
+  async function pullPeople(td) {
+    var co = td.getAttribute("data-co");
+    var loc = td.getAttribute("data-loc");
+    var title = td.getAttribute("data-title");
+    var $p = document.getElementById("plist");
+
+    [].slice.call(document.querySelectorAll("td.cell")).forEach(function (c) {
+      c.classList.toggle("is-on", c === td);
+    });
+
+    var started = Date.now();
+    var tick = setInterval(function () {
+      $p.innerHTML = '<p class="hint">Pulling ' + esc(title) + " at " + esc(co) +
+        (loc ? " in " + esc(loc) : "") + " \u2014 <b>" +
+        Math.round((Date.now() - started) / 1000) + "s</b>.</p>";
+    }, 1000);
+    $p.innerHTML = '<p class="hint">Pulling the list\u2026</p>';
+    $p.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    try {
+      var res = await fetch("/api/people", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ company: co, titles: [title], location: loc, limit: 25 })
+      });
+      var payload = await res.json().catch(function () { return null; });
+      clearInterval(tick);
+      if (!res.ok || !payload) {
+        $p.innerHTML = '<p class="err">' +
+          esc((payload && payload.error) || ("List failed (" + res.status + ").")) + "</p>";
+        return;
+      }
+      payload._co = co; payload._loc = loc; payload._title = title;
+      lastPeople = payload;
+      renderPeople(payload);
+    } catch (e) {
+      clearInterval(tick);
+      $p.innerHTML = '<p class="err">Could not reach the list endpoint.</p>';
+    }
+  }
+
+  function months(m) {
+    if (typeof m !== "number" || m < 0) return "";
+    if (m < 12) return m + "mo";
+    var y = Math.floor(m / 12), r = m % 12;
+    return y + "y" + (r ? " " + r + "mo" : "");
+  }
+
+  function renderPeople(x) {
+    var people = Array.isArray(x.people) ? x.people : [];
+    var $p = document.getElementById("plist");
+    var h = "<h3>" + esc(x._title) + " \u00b7 " + esc(x._co) +
+      (x._loc ? " \u00b7 " + esc(x._loc) : "") + "</h3>";
+
+    h += '<p class="hint" style="margin-bottom:14px">' +
+      (typeof x.total_matching === "number"
+        ? "<b>" + num(x.total_matching) + "</b> people match; showing " + people.length + ". "
+        : "Showing " + people.length + ". ") +
+      (typeof x.cost_usd === "number" ? "Cost <b>$" + x.cost_usd.toFixed(2) + "</b>." : "") + "</p>";
+
+    if (x.note) h += '<p class="partial">' + esc(x.note) + "</p>";
+
+    if (!people.length) {
+      h += '<p class="empty">Super Carl found nobody there with that exact title, ' +
+        "even though Apollo counted some. The two index different people and read " +
+        "titles differently \u2014 try a broader title.</p>";
+      $p.innerHTML = h;
+      return;
+    }
+
+    h += '<table class="people"><thead><tr><th>Name</th><th>Title</th><th>Location</th>' +
+      "<th>In seat</th><th>Experience</th></tr></thead><tbody>";
+    people.forEach(function (pn) {
+      // 18-48 months is the window where a seller has a number to quote and is
+      // not yet cemented. Worth marking; it is the first thing a sourcer scans.
+      var ripe = typeof pn.tenure_months === "number" && pn.tenure_months >= 18 && pn.tenure_months <= 48;
+      h += "<tr><td>" +
+        (pn.linkedin_url
+          ? '<a class="pname" href="' + esc(pn.linkedin_url) + '" target="_blank" rel="noopener">' + esc(pn.name || "?") + "</a>"
+          : '<span class="pname">' + esc(pn.name || "?") + "</span>") +
+        (pn.employer_conflict
+          ? ' <span class="conflict">now ' + esc(pn.company || "elsewhere") + "?</span>"
+          : "") +
+        (pn.headline ? '<div class="pmeta">' + esc(String(pn.headline).slice(0, 90)) + "</div>" : "") +
+        "</td>" +
+        '<td class="pmeta">' + esc(pn.title || "") + "</td>" +
+        '<td class="pmeta">' + esc(pn.location || "") + "</td>" +
+        '<td class="pten' + (ripe ? " pten--ripe" : "") + '">' + months(pn.tenure_months) + "</td>" +
+        '<td class="pten">' + months(pn.experience_months) + "</td></tr>";
+    });
+    h += "</tbody></table>";
+    h += '<div class="exports"><button id="btn-pcsv" type="button">Copy list as CSV</button></div>';
+    if (x.truncated) {
+      h += '<p class="hint" style="margin-top:10px">This is the first ' + people.length +
+        " of " + num(x.total_matching) + ". Narrow the location or the title to get a workable slice.</p>";
+    }
+    $p.innerHTML = h;
+    document.getElementById("btn-pcsv").addEventListener("click", function () { copy(peopleCsv(x), this); });
+  }
+
+  function peopleCsv(x) {
+    function cell(v) {
+      var s = v === null || v === undefined ? "" : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    var rows = [["Name", "Title", "Company", "Location", "LinkedIn",
+                 "Months in seat", "Months experience", "Employer conflict"]];
+    (x.people || []).forEach(function (p) {
+      rows.push([p.name, p.title, p.company || x._co, p.location, p.linkedin_url,
+                 p.tenure_months, p.experience_months, p.employer_conflict ? "yes" : ""]);
+    });
+    return rows.map(function (r) { return r.map(cell).join(","); }).join("\n");
   }
 
   function cellVal(c) { return typeof c.apollo === "number" ? String(c.apollo) : ""; }
