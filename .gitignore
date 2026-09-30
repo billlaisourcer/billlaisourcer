@@ -2,10 +2,11 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Real candidate slates stay out of git — this repo is public.
-# Keep them local, or in a separate private repo.
+# Real candidate slates and sourced people stay out of git — this repo is
+# public. Keep them local, or in a separate private repo.
 briefs/*.json
 briefs/*-scorecard.md
+lists/
 node_modules/
 .vercel
 .env

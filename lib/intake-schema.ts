@@ -6,6 +6,17 @@ import { BANDS, DIMENSIONS, PIN_STATUSES } from "./rubric.js";
  * generated slate drops straight into scripts/score_candidates.py unchanged.
  */
 
+/**
+ * A list to trim rather than reject.
+ *
+ * The caps below are presentational, not correctness constraints, and a slate
+ * costs real money and minutes to produce. Failing the whole parse because the
+ * model listed one must-have too many would throw away work the recruiter has
+ * already paid for, so take the first N instead.
+ */
+const capped = (max: number) =>
+  z.array(z.string()).transform((xs) => xs.slice(0, max));
+
 const ScoreEntry = z.object({
   /** 0-5, or null when the profile carries no evidence either way. */
   rating: z.number().min(0).max(5).nullable(),
@@ -45,10 +56,10 @@ export const IntakeSchema = z.object({
     company: z.string().min(1),
     location: z.string().optional(),
     seniority_band: z.string().optional(),
-    must_haves: z.array(z.string()).min(1).max(6),
+    must_haves: z.array(z.string()).min(1).transform((xs) => xs.slice(0, 6)),
     nice_to_haves: z.array(z.string()).optional(),
     target_companies: z.array(z.string()).optional(),
-    open_questions: z.array(z.string()).max(2).optional(),
+    open_questions: capped(2).optional(),
   }),
   weights: z
     .object(
