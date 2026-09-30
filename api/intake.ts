@@ -7,6 +7,13 @@ import Anthropic, {
 import { IntakeSchema, extractJson } from "../lib/intake-schema.js";
 import { clampJd, newRunId, saveRun, storageConfigured } from "../lib/history.js";
 import {
+  JevAuthError,
+  report as jevReport,
+  rowsFromToolResults,
+  screen as jevScreen,
+  type JevReport,
+} from "../lib/jev.js";
+import {
   BAND_TARGETS,
   DEFAULT_WEIGHTS,
   DIMENSIONS,
@@ -68,6 +75,10 @@ that", and that reaction is worth more than weeks of sourcing against a misread 
 4. Search with the ${MCP_NAME} tools. **You are under a hard time budget — use at most four
    searches.** Make each one count: vary the angle rather than repeating a query, and pull
    more people per search than you need so you can select for spread. Do not keep refining.
+   **Every people_search must request these fields:** name, linkedin_url, headline,
+   current_title, current_company, location, experiences, skills. The profile is the only
+   evidence there is; a row without them cannot be checked afterwards, and a rating that
+   cannot be checked is only your opinion.
 5. Select exactly ${SLATE_SIZE} for band spread:
 ${BAND_TABLE}
 6. Score each person on every rubric dimension:
@@ -165,6 +176,72 @@ function json(body: unknown, status: number): Response {
  * default export as the `(req, res) => void` signature and discards a returned
  * Response. Naming the method also gives us a free 405 on everything else.
  */
+export type JevOutcome =
+  | { status: "ok"; report: JevReport; ms: number }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string };
+
+/**
+ * A second, cheap reading of every profile the searches returned — not only the
+ * ten the model picked — against the same must-haves. It is an addition to the
+ * slate and never a condition of it: whatever happens in here, the slate the
+ * user already paid for goes back.
+ */
+async function runJevScreen(input: {
+  mustHaves: string[];
+  niceToHaves: string[];
+  slate: { name: string; linkedin?: string; modelRating: number | null }[];
+  toolBlocks: unknown[];
+  deadline: number;
+}): Promise<JevOutcome> {
+  const apiKey = process.env.TYPESAFE_API_KEY;
+  if (!apiKey) {
+    return { status: "skipped", reason: "TYPESAFE_API_KEY is not set on this deployment." };
+  }
+
+  const rows = rowsFromToolResults(input.toolBlocks);
+  if (!rows.length) {
+    return { status: "skipped", reason: "No profiles could be read from the search results." };
+  }
+
+  const t0 = Date.now();
+  try {
+    const outcome = await jevScreen({
+      apiKey,
+      requirements: input.mustHaves,
+      niceToHaves: input.niceToHaves,
+      rows,
+      deadline: input.deadline,
+    });
+    const rep = jevReport(input.mustHaves, input.niceToHaves, input.slate, outcome);
+    console.log(
+      "jev",
+      JSON.stringify({
+        rows: rows.length,
+        screened: rep.screened,
+        skipped: rep.skipped,
+        errors: rep.errors,
+        conflicts: rep.slate.filter((x) => x.flag === "conflict").length,
+        unverified: rep.slate.filter((x) => x.flag === "unverified").length,
+        harsh: rep.slate.filter((x) => x.flag === "model_harsh").length,
+        unmatched: rep.slate.filter((x) => x.unmatched).length,
+        ms: Date.now() - t0,
+      }),
+    );
+    return { status: "ok", report: rep, ms: Date.now() - t0 };
+  } catch (err) {
+    return {
+      status: "failed",
+      reason:
+        err instanceof JevAuthError
+          ? "Jev rejected the API key."
+          : err instanceof Error
+            ? err.message
+            : String(err),
+    };
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   const startedAt = Date.now();
   // NOTE: this endpoint is intentionally open. It was gated on APP_ACCESS_TOKEN;
@@ -451,8 +528,22 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    const jev = await runJevScreen({
+      mustHaves: result.data.req.must_haves,
+      niceToHaves: result.data.req.nice_to_haves ?? [],
+      slate: result.data.candidates.map((c) => ({
+        name: c.name,
+        linkedin: c.linkedin,
+        modelRating: c.scores.must_have_coverage.rating,
+      })),
+      toolBlocks: message.content,
+      // Leave headroom under the function ceiling for saving and responding.
+      deadline: startedAt + (maxDuration - 20) * 1000,
+    });
+
     const meta = {
       model: MODEL,
+      jev,
       searches,
       candidates: result.data.candidates.length,
       stop_reason: message.stop_reason,

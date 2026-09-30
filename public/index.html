@@ -251,6 +251,30 @@
     flex-wrap: wrap;
   }
   .pane__head .chip { flex: 0 0 auto; }
+
+  /* ---------- Jev screen ---------- */
+  .jev { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--hairline-hi); }
+  .jev h3 { font-family: var(--f-display); font-size: 21px; margin: 0 0 4px; }
+  .jev__sub { margin: 0 0 14px; font-family: var(--f-prose); font-size: 12.5px; line-height: 1.55; color: var(--ink-faint); }
+  .jev__legend { margin: 0 0 14px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px;
+    font-family: var(--f-chrome); font-size: 12px; color: var(--ink-muted); }
+  .jev__legend b { font-family: var(--f-data); color: var(--ink); margin-right: 4px; }
+  table.jevt { width: 100%; border-collapse: collapse; font-family: var(--f-chrome); font-size: 13px; }
+  table.jevt th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink-faint); padding: 0 12px 7px 0; border-bottom: 1px solid var(--hairline-hi); }
+  table.jevt td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  table.jevt tr.is-flagged td { background: var(--warn-soft); }
+  .jev__who { font-weight: 600; color: var(--ink); }
+  .jev__meta { font-size: 11.5px; color: var(--ink-faint); }
+  .jc { display: inline-block; min-width: 2.6em; margin: 0 3px 3px 0; padding: 1px 5px; text-align: center;
+    font-family: var(--f-data); font-size: 11.5px; border-radius: 2px; border: 1px solid var(--hairline-hi); color: var(--ink-muted); }
+  .jc--yes { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+  .jc--no  { color: var(--crit); border-color: var(--crit); background: var(--crit-soft); }
+  /* An unsettled verdict is drawn dashed: read it, do not lean on it. */
+  .jc--soft { border-style: dashed; }
+  .jflag { font-size: 11.5px; font-weight: 600; color: var(--warn); }
+  .jflag--ok { color: var(--ink-faint); font-weight: 400; }
+  .jev__note { font-family: var(--f-prose); font-size: 12.5px; color: var(--ink-faint); margin: 10px 0 0; }
   .pane__head .tabs { flex: 1 1 auto; min-width: 0; }
   .pane__head h2 {
     margin: 0; font-size: 11px; font-weight: 700;
@@ -1451,6 +1475,9 @@
   var $status = document.getElementById("status");
   var EXAMPLE = document.getElementById("example-data").textContent.trim();
   var lastResult = null;
+  // Jev's reading of the current slate. Kept apart from the slate JSON so the
+  // scorer, which is held byte-identical to the Python one, never sees it.
+  var lastJev = null;
 
   var EMPTY = '<p class="empty">Paste a job description on the left and hit <b>Source &amp; score</b>, ' +
     'or <b>Load example</b> to see a scored six-profile slate — including one candidate the req ' +
@@ -1459,6 +1486,83 @@
   function setStatus(text, cls) {
     $status.textContent = text;
     $status.className = "chip" + (cls ? " " + cls : "");
+  }
+
+  /* ---------- Jev screen ----------
+     A second reading of the same profiles by a different kind of model. It sits
+     BELOW the scorecard and never changes a rating or a rank: where it disagrees
+     with the model it says so, and the recruiter decides. */
+
+  function jevChip(r, n) {
+    var mark = r.verdict === "supports" ? "\u2713" : r.verdict === "contradicts" ? "\u2717" : "?";
+    var cls = "jc" + (r.verdict === "supports" ? " jc--yes" : r.verdict === "contradicts" ? " jc--no" : "") +
+      (r.settled ? "" : " jc--soft");
+    var tip = (r.verdict === "says_nothing" ? "profile says nothing about it" : r.verdict) +
+      (typeof r.confidence === "number" ? " \u00b7 confidence " + Math.round(r.confidence * 100) + "%" : "") +
+      (r.settled ? "" : " \u00b7 unsettled");
+    return '<span class="' + cls + '" title="' + esc(tip) + '">' + n + mark + "</span>";
+  }
+
+  function jevRow(p, opts) {
+    var cov = typeof p.coverage === "number" ? Math.round(p.coverage * 100) + "%" : "\u2014";
+    var flag = "";
+    if (opts.slate) {
+      if (p.unmatched) flag = '<span class="jflag" title="Matched by LinkedIn URL, else by name. A name written differently in the slate and the search result will miss.">could not be matched to a search result \u2014 check the name and link</span>';
+      else if (p.flag === "conflict") flag = '<span class="jflag">profile contradicts a must-have the model credited</span>';
+      else if (p.flag === "model_harsh") flag = '<span class="jflag">model rated lower than the profile supports</span>';
+      else if (p.flag === "unverified") flag = '<span class="jflag jflag--ok">rated above what the profile fields confirm</span>';
+      else if (p.flag === "agree") flag = '<span class="jflag jflag--ok">agrees</span>';
+      else flag = '<span class="jflag jflag--ok">\u2014</span>';
+    }
+    var flagged = opts.slate && (p.unmatched || p.flag === "conflict" || p.flag === "model_harsh");
+    var who = p.linkedin
+      ? '<a class="jev__who" href="' + esc(p.linkedin) + '" target="_blank" rel="noopener">' + esc(p.name || "?") + "</a>"
+      : '<span class="jev__who">' + esc(p.name || "?") + "</span>";
+    return '<tr' + (flagged ? ' class="is-flagged"' : "") + "><td>" + who +
+      (p.title || p.company ? '<div class="jev__meta">' + esc([p.title, p.company].filter(Boolean).join(" \u00b7 ")) + "</div>" : "") +
+      "</td><td>" + p.must.map(function (r, i) { return jevChip(r, i + 1); }).join("") + "</td>" +
+      '<td class="n">' + cov + "</td>" + (opts.slate ? "<td>" + flag + "</td>" : "") + "</tr>";
+  }
+
+  function renderJev(j) {
+    if (!j) return "";
+
+    if (j.status === "skipped") {
+      return '<div class="jev"><p class="jev__note">Jev screen is off: ' + esc(j.reason) + "</p></div>";
+    }
+    if (j.status === "failed") {
+      return '<div class="jev"><p class="jev__note">Jev screen did not run: ' + esc(j.reason) +
+        " The slate above is unaffected.</p></div>";
+    }
+    if (j.status !== "ok" || !j.report) return "";
+
+    var r = j.report;
+    var h = '<section class="jev"><h3>Jev screen</h3>' +
+      '<p class="jev__sub">A second reading of ' + r.screened + " profiles from the searches \u2014 " +
+      "not just the " + r.slate.length + " selected \u2014 against the same must-haves. " +
+      "\u2713 the profile shows it \u00b7 \u2717 it shows the opposite \u00b7 ? it says nothing either way. " +
+      "A dashed chip is an unsettled call. It never changes a rating or a rank.</p>";
+
+    h += '<ol class="jev__legend">' + r.requirements.map(function (q, i) {
+      return "<li><b>" + (i + 1) + "</b>" + esc(q) + "</li>";
+    }).join("") + "</ol>";
+
+    h += '<table class="jevt"><thead><tr><th>Your slate</th><th>Must-haves</th><th>Coverage</th><th>Against the model</th></tr></thead><tbody>' +
+      r.slate.map(function (p) { return jevRow(p, { slate: true }); }).join("") + "</tbody></table>";
+
+    if (r.pool && r.pool.length) {
+      h += '<h4 style="margin:24px 0 8px;font-size:13px">Also returned by the searches, not in your slate</h4>' +
+        '<table class="jevt"><thead><tr><th>Candidate</th><th>Must-haves</th><th>Coverage</th></tr></thead><tbody>' +
+        r.pool.map(function (p) { return jevRow(p, { slate: false }); }).join("") + "</tbody></table>";
+    }
+
+    var notes = [];
+    if (r.skipped) notes.push(r.skipped + " profile(s) were not screened because the time budget ran out.");
+    if (r.errors) notes.push(r.errors + " profile(s) could not be judged and are left out of the pool list.");
+    notes.push("Jev reads only the profile fields Super Carl returns \u2014 headline, skills and a title, company and dates " +
+      "history, with no descriptions of what someone did. A must-have that turns on what they did in a role will mostly show ?.");
+    h += '<p class="jev__note">' + notes.map(esc).join(" ") + "</p></section>";
+    return h;
   }
 
   function run() {
@@ -1494,7 +1598,7 @@
     }
     lastResult = res;
     $err.hidden = true;
-    $out.innerHTML = renderHTML(res);
+    $out.innerHTML = renderHTML(res) + renderJev(lastJev);
     setStatus(res.rows.length + " scored", "ok");
   }
 
@@ -1506,6 +1610,7 @@
 
   document.getElementById("btn-example").addEventListener("click", function () {
     $in.value = EXAMPLE;
+    lastJev = null;
     run();
   });
 
@@ -1840,6 +1945,7 @@
       // Feeding the stored slate through the render path reuses the whole
       // existing scorer — Copy markdown works on a historical run exactly as
       // on a fresh one. No API call, no tokens, no credits.
+      lastJev = (rec.meta && rec.meta.jev) || null;
       $in.value = JSON.stringify(rec.intake, null, 2);
       run();
       $out.insertAdjacentHTML("afterbegin", criteriaPanel(rec));
@@ -2024,6 +2130,7 @@
         return;
       }
 
+      lastJev = (payload.meta || {}).jev || null;
       $in.value = JSON.stringify(payload.intake, null, 2);
       store("calibration-scorecard:input", $in.value);
       run();
@@ -2098,6 +2205,7 @@
     });
 
     $in.value = "";
+    lastJev = null;
     run();                 // renders the empty state
 
     $recal.hidden = true;

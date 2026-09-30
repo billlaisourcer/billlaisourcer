@@ -76,6 +76,12 @@ export interface RunMeta {
   usage: Record<string, number>;
   cost_usd: number;
   elapsed_ms: number;
+  /**
+   * Jev's reading of the same profiles, stored with the run so reopening it from
+   * History shows the same screen rather than silently dropping it. Typed loosely
+   * on purpose: the report shape belongs to lib/jev.ts and old runs have none.
+   */
+  jev?: unknown;
 }
 
 export interface StoredRun {
