@@ -3,7 +3,7 @@
  *
  * These constants are mirrored in three places and must agree:
  *   - scripts/score_candidates.py  (the committed CLI scorer)
- *   - public/index.html            (the in-browser scorer)
+ *   - public/icp.html              (the in-browser scorer)
  *   - this file                    (what the model is told to produce)
  *
  * Change one, change all three, and re-run the parity check in the README.

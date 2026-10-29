@@ -3,6 +3,10 @@
   "outputDirectory": "public",
   "rewrites": [
     {
+      "source": "/icp",
+      "destination": "/icp.html"
+    },
+    {
       "source": "/submit",
       "destination": "/submit.html"
     },

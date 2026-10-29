@@ -38,7 +38,8 @@ lib/intake-schema.ts      Zod contract the model must satisfy
 lib/submission-schema.ts  Zod contract for a submission, and the expected-field list
 lib/resume.ts             PDF passthrough and .docx text extraction
 lib/history.ts            run and submission records in Redis, on a 30-day TTL
-public/index.html         the ICP generator and the in-browser scorer
+public/index.html         the landing page
+public/icp.html           the ICP generator and the in-browser scorer
 public/submit.html        the submission builder
 scripts/score_candidates.py   the CLI scorer (byte-identical output)
 schema/intake.schema.json     the intake file format

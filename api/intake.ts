@@ -247,7 +247,7 @@ export async function POST(request: Request): Promise<Response> {
   // NOTE: this endpoint is intentionally open. It was gated on APP_ACCESS_TOKEN;
   // the owner removed the gate deliberately. Anyone who knows the URL can spend
   // the configured Super Carl credits and Anthropic tokens. To restore the gate,
-  // reinstate the token comparison here and the token field in public/index.html.
+  // reinstate the token comparison here and the token field in public/icp.html.
   const carlToken = process.env.SUPERCARL_API_KEY;
   if (!carlToken) {
     return json({ error: "Server is not configured: SUPERCARL_API_KEY is unset." }, 503);
