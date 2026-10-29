@@ -3,6 +3,14 @@
   "outputDirectory": "public",
   "rewrites": [
     {
+      "source": "/building",
+      "destination": "/building.html"
+    },
+    {
+      "source": "/feedback",
+      "destination": "/feedback.html"
+    },
+    {
       "source": "/icp",
       "destination": "/icp.html"
     },

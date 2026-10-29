@@ -54,6 +54,7 @@ schema/intake.schema.json     the intake file format
 |---|---|
 | `SUPERCARL_API_KEY` | Super Carl programmatic access — mint at `/integrations/connections`. |
 | `ANTHROPIC_API_KEY` | Starts `sk-ant-api03-`, ~100+ chars. Billed separately from a Claude subscription. |
+| `RESEND_API_KEY` | Sends `/feedback` form submissions to `FEEDBACK_TO` (default `sales@sourcedirectbi.com`) via Resend. `FEEDBACK_FROM` must be a verified Resend sender. Unset: the form falls back to a mailto: link. |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Search history. Injected by the Vercel Upstash integration; the legacy `KV_REST_API_*` pair is also accepted. |
 
 Only the first two gate a search. Without the history variables the app runs
