@@ -11,7 +11,7 @@
  * Env:
  *   RESEND_API_KEY   required — without it the endpoint answers 503 and the
  *                    page falls back to a prefilled mailto: link.
- *   FEEDBACK_FROM    sender, e.g. "SD Sourcing Agent <feedback@sourcedirectbi.com>".
+ *   FEEDBACK_FROM    sender, e.g. "SD Sourcing Copilot <feedback@sourcedirectbi.com>".
  *                    The domain must be verified in Resend. Defaults to Resend's
  *                    test sender, which only delivers to the Resend account owner.
  *   FEEDBACK_TO      recipient; defaults to sales@sourcedirectbi.com.
@@ -21,7 +21,7 @@
  */
 
 const DEFAULT_TO = "sales@sourcedirectbi.com";
-const DEFAULT_FROM = "SD Sourcing Agent <onboarding@resend.dev>";
+const DEFAULT_FROM = "SD Sourcing Copilot <onboarding@resend.dev>";
 const RESEND_URL = "https://api.resend.com/emails";
 
 const MAX_MESSAGE = 4000;
@@ -99,7 +99,7 @@ export async function POST(request: Request): Promise<Response> {
       body: JSON.stringify({
         from: process.env.FEEDBACK_FROM || DEFAULT_FROM,
         to: [process.env.FEEDBACK_TO || DEFAULT_TO],
-        subject: `SD Sourcing Agent feedback${name ? ` from ${name}` : ""}`,
+        subject: `SD Sourcing Copilot feedback${name ? ` from ${name}` : ""}`,
         text,
         ...(email ? { reply_to: email } : {}),
       }),

@@ -1,4 +1,4 @@
-# Sourcing AI Agent
+# SD Sourcing Copilot
 
 Paste a job description, get a **calibration slate**: ten sourced candidates, banded to
 provoke disagreement, each scored on a fixed rubric with the evidence behind every rating.
