@@ -92,11 +92,14 @@
     color: var(--accent);
   }
   .brand__sub { font-size: 13px; color: var(--ink-muted); }
-  .ext {
-    font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap;
-    color: var(--ink-muted); border: 1px solid var(--hairline-hi); border-radius: 4px; padding: 7px 12px;
+
+  /* Company link in the intro: bold and in the accent colour so it reads as
+     the way back to the company site, not as body text. */
+  .co {
+    color: var(--accent); font-weight: 700; text-decoration: underline;
+    text-decoration-thickness: 2px; text-underline-offset: 3px;
   }
-  .ext:hover { color: var(--ink); border-color: var(--accent); }
+  .co:hover { filter: brightness(1.15); }
 
   /* ---------- hero ---------- */
   .hero { padding: 44px 0 36px; max-width: 760px; }
@@ -177,7 +180,6 @@
         <div class="brand__sub">SD Sourcing Agent</div>
       </div>
     </div>
-    <a class="ext" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">sourcedirectbi.com &#8599;</a>
   </header>
 
   <main>
@@ -185,7 +187,7 @@
       <span class="pill">Beta 1.1</span>
       <h1>Welcome to SD Sourcing Agent</h1>
       <p class="lede">
-        AI-assisted tools for recruiters, built by SourceDirect AI: turn a job description
+        AI-assisted tools for recruiters, built by <a class="co" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">SourceDirect AI<span aria-hidden="true"> &#8599;</span></a>: turn a job description
         into a calibrated slate of candidates, map who works where, and write up submissions
         &mdash; with the evidence behind every score.
       </p>
