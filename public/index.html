@@ -123,30 +123,6 @@
     color: var(--accent); margin-bottom: 2px;
   }
 
-  /* ---------- access gate ---------- */
-  .gate {
-    position: fixed; inset: 0; z-index: 50;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--ground); padding: 24px;
-  }
-  .gate[hidden] { display: none; }
-  .gate__card {
-    width: 100%; max-width: 340px;
-    background: var(--surface); border: 1px solid var(--hairline);
-    border-radius: 6px; padding: 26px 24px;
-    display: flex; flex-direction: column; gap: 13px;
-  }
-  .gate__brand { display: flex; align-items: center; gap: 11px; margin-bottom: 2px; }
-  .gate__title { margin: 0; font-family: var(--f-display); font-size: 17px;
-    font-weight: 700; letter-spacing: -0.01em; }
-  .gate__sub {
-    margin: 0; font-family: var(--f-prose); font-size: 13px; color: var(--ink-muted);
-  }
-  .gate__err {
-    margin: 0; font-size: 12.5px; font-weight: 600; color: var(--crit);
-  }
-  .gate__err[hidden] { display: none; }
-
   .masthead {
     display: flex; flex-wrap: wrap; gap: 16px;
     align-items: flex-end; justify-content: space-between;
@@ -669,29 +645,6 @@
 </style>
 </head>
 <body>
-<div class="gate" id="gate">
-  <div class="gate__card">
-    <div class="gate__brand">
-      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
-        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
-        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="var(--score-bar)"></rect>
-        <text x="19" y="22" text-anchor="middle"
-          font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
-          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
-      </svg>
-      <div>
-        <div class="brand__name">SD Talent</div>
-        <h2 class="gate__title">Kick Off Search ICP Generator</h2>
-      </div>
-    </div>
-    <p class="gate__sub">Enter the access password to continue.</p>
-    <input class="field" id="gate-pw" type="password" autocomplete="current-password"
-      placeholder="Password" aria-label="Access password">
-    <button class="primary wide" id="gate-go" type="button">Enter</button>
-    <p class="gate__err" id="gate-err" hidden>That password is not correct.</p>
-  </div>
-</div>
-
 <header class="masthead">
   <div class="brand">
     <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD Talent">
@@ -713,7 +666,6 @@
     <a class="btn" href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">
       Source Direct <span class="arrow">&#8599;</span>
     </a>
-    <button class="quiet" id="btn-lock" type="button" title="Return to the password screen">Lock</button>
     <span class="sep" aria-hidden="true"></span>
     <button id="btn-new" type="button">New search</button>
     <button id="btn-example" type="button">Load example</button>
@@ -1656,53 +1608,6 @@
     done(ok);
   }
 
-  /* ---------- access gate ---------- */
-  /*
-   * This is a curtain, not a lock. The password sits in the page source, so it
-   * keeps a casual visitor out and nothing more. The API endpoint is separately
-   * open — see the note in api/intake.ts.
-   */
-  var GATE_PASSWORD = "william27";
-  var GATE_KEY = "sdtalent:unlocked";
-  var $gate = document.getElementById("gate");
-  var $gatePw = document.getElementById("gate-pw");
-  var $gateErr = document.getElementById("gate-err");
-
-  function openGate() {
-    $gate.hidden = true;
-    try { localStorage.setItem(GATE_KEY, "1"); } catch (e) { /* private mode */ }
-  }
-  function tryGate() {
-    if ($gatePw.value.trim() === GATE_PASSWORD) {
-      openGate();
-    } else {
-      $gateErr.hidden = false;
-      $gatePw.value = "";
-      $gatePw.focus();
-    }
-  }
-  document.getElementById("gate-go").addEventListener("click", tryGate);
-  $gatePw.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") tryGate();
-    else $gateErr.hidden = true;
-  });
-
-  document.getElementById("btn-lock").addEventListener("click", function () {
-    try { localStorage.removeItem(GATE_KEY); } catch (e) { /* private mode */ }
-    $gatePw.value = "";
-    $gateErr.hidden = true;
-    $gate.hidden = false;
-    $gatePw.focus();
-  });
-
-  var unlocked = null;
-  try { unlocked = localStorage.getItem(GATE_KEY); } catch (e) { unlocked = null; }
-  if (unlocked === "1") {
-    $gate.hidden = true;
-  } else {
-    $gatePw.focus();
-  }
-
   /* ---------- tabs ---------- */
 
   var TABS = ["jd", "history"];
@@ -1733,25 +1638,13 @@
      laptop too, and it has to survive a cleared browser. Storing them costs no
      tokens and no credits — only an API call does — so the full result is kept
      rather than just the inputs, and reopening a past run is free and instant
-     instead of a fresh $0.40+ search.
-
-     The endpoint is gated on APP_ACCESS_TOKEN, and the gate password doubles
-     as that token — one value, set in both places. */
+     instead of a fresh $0.40+ search.*/
 
   function histFetch(path, options) {
-    var opts = options || {};
-    opts.headers = { authorization: "Bearer " + GATE_PASSWORD };
-    return fetch(path, opts);
+    return fetch(path, options || {});
   }
 
-  /* A 401 here has exactly one cause worth naming: the gate password and the
-     server's APP_ACCESS_TOKEN have drifted apart. */
   function histError(res, payload) {
-    if (res.status === 401) {
-      return "History rejected this password. The gate password and the server's " +
-        "APP_ACCESS_TOKEN must be the same value — check it in Vercel → Settings → " +
-        "Environment Variables.";
-    }
     return (payload && payload.error) || ("History request failed with " + res.status + ".");
   }
 

@@ -1,7 +1,6 @@
 import {
   KINDS,
   WINDOW_DAYS,
-  authorize,
   clearByKind,
   deleteByKind,
   getByKind,
@@ -18,10 +17,11 @@ import {
  *
  * `kind` selects sourcing runs (the default) or candidate submissions.
  *
- * Auth: Bearer APP_ACCESS_TOKEN. Unlike the generating endpoints — which are
- * deliberately open — this hands back candidate names, employers, profile
- * links and screening-call notes from every past run, so it is gated and fails
- * closed.
+ * Auth: none. The owner removed the access password deliberately, so this is
+ * open like the generating endpoints: anyone with the URL can read or delete
+ * past runs, which include candidate names, employers, profile links and
+ * screening-call notes. To restore the gate, reinstate a token check in
+ * preflight() and send it from the History tabs.
  */
 
 function json(body: unknown, status: number): Response {
@@ -36,13 +36,10 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-/** Shared by both methods: auth, store presence, and the kind parameter. */
+/** Shared by both methods: store presence and the kind parameter. */
 function preflight(
   request: Request,
 ): { ok: false; response: Response } | { ok: true; kind: Kind; params: URLSearchParams } {
-  const auth = authorize(request);
-  if (!auth.ok) return { ok: false, response: json({ error: auth.error }, auth.status) };
-
   // Distinguish "no store connected" from "nothing recorded yet". Both look
   // like an empty list to a caller that cannot tell them apart, and only one
   // of them is a problem someone needs to go and fix.
@@ -97,9 +94,6 @@ export async function DELETE(request: Request): Promise<Response> {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const auth = authorize(request);
-  if (!auth.ok) return json({ error: auth.error }, auth.status);
-
   // Distinguish "no store connected" from "nothing recorded yet". Both look
   // like an empty list to a caller that cannot tell them apart, and only one
   // of them is a problem someone needs to go and fix.

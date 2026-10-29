@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { Redis } from "@upstash/redis";
 import type { Intake } from "./intake-schema.js";
 import type { Submission } from "./submission-schema.js";
@@ -379,44 +378,4 @@ export function listByKind(kind: Kind): Promise<Summary[] | null> {
 
 export function getByKind(kind: Kind, id: string): Promise<unknown | null> {
   return get<unknown>(kind, id);
-}
-
-/**
- * Compare a presented token against the configured one without leaking its
- * length or a byte-position match through timing. Hashing first is what lets
- * unequal lengths through timingSafeEqual, which requires equal-sized buffers.
- */
-function secretsMatch(presented: string, expected: string): boolean {
-  const a = createHash("sha256").update(presented).digest();
-  const b = createHash("sha256").update(expected).digest();
-  return timingSafeEqual(a, b);
-}
-
-export type AuthResult =
-  | { ok: true }
-  | { ok: false; status: number; error: string };
-
-/**
- * Gate on APP_ACCESS_TOKEN.
- *
- * Fails closed: with the variable unset there is no correct token, so the
- * endpoint stays shut rather than serving every past search — including
- * candidate names, employers and profile links — to anyone with the URL. The
- * 503 is deliberately distinguishable from the 401 so the UI can say "history
- * is not configured" instead of "wrong password".
- */
-export function authorize(request: Request): AuthResult {
-  const expected = process.env.APP_ACCESS_TOKEN;
-  if (!expected) {
-    return {
-      ok: false,
-      status: 503,
-      error: "History is not configured: APP_ACCESS_TOKEN is unset on the server.",
-    };
-  }
-  const header = request.headers.get("authorization") ?? "";
-  const presented = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return secretsMatch(presented, expected)
-    ? { ok: true }
-    : { ok: false, status: 401, error: "Not authorized." };
 }

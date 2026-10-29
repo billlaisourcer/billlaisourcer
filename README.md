@@ -53,7 +53,6 @@ schema/intake.schema.json     the intake file format
 |---|---|
 | `SUPERCARL_API_KEY` | Super Carl programmatic access — mint at `/integrations/connections`. |
 | `ANTHROPIC_API_KEY` | Starts `sk-ant-api03-`, ~100+ chars. Billed separately from a Claude subscription. |
-| `APP_ACCESS_TOKEN` | Gate on `/api/history`. Must equal the access password in `public/index.html` — the page sends that password as the bearer token. |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Search history. Injected by the Vercel Upstash integration; the legacy `KV_REST_API_*` pair is also accepted. |
 
 Only the first two gate a search. Without the history variables the app runs
