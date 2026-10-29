@@ -3,6 +3,10 @@
   "outputDirectory": "public",
   "rewrites": [
     {
+      "source": "/kickoff",
+      "destination": "/kickoff.html"
+    },
+    {
       "source": "/building",
       "destination": "/building.html"
     },

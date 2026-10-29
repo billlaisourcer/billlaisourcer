@@ -13,6 +13,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<script>
+  /* These two pages are the stages of /kickoff. Framed there, hide their own
+     header (the shell supplies it); opened on their own, go to the shell. */
+  (function () {
+    if (window.top === window.self) location.replace("/kickoff#mapping");
+    else document.documentElement.classList.add("embedded");
+  })();
+</script>
+<style>.embedded .masthead { display: none; }</style>
 <style>
 
     :root { color-scheme: light dark; }

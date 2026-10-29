@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Kick Off / Talent Mapping — start a search from a job description, then map who holds the role and where.">
+<title>Kick Off / Talent Mapping</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2F7FFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<style>
+  :root { color-scheme: light dark; }
+  html { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+
+  :root {
+    --ground:#F7F9FD; --surface:#FFFFFF; --ink:#040D1E; --ink-muted:#5D6E8E;
+    --hairline:#DFE7F4; --hairline-hi:#C4D2EA; --accent:#2F7FFF; --accent-ink:#FFFFFF;
+    --accent-soft:#EEF4FF; --focus:#2F7FFF;
+    --f-display:"Playfair Display",Georgia,"Times New Roman",serif;
+    --f-chrome:"DM Sans","Helvetica Neue",Arial,sans-serif;
+    --f-data:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#060C18; --surface:#0D1526; --ink:#E8EEF9; --ink-muted:#9AAAC6;
+      --hairline:#1C2740; --hairline-hi:#2C3A58; --accent:#61A4FF; --accent-ink:#040D1E;
+      --accent-soft:#14203A; --focus:#61A4FF;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#060C18; --surface:#0D1526; --ink:#E8EEF9; --ink-muted:#9AAAC6;
+    --hairline:#1C2740; --hairline-hi:#2C3A58; --accent:#61A4FF; --accent-ink:#040D1E;
+    --accent-soft:#14203A; --focus:#61A4FF;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink); font-family: var(--f-chrome);
+    font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    display: flex; flex-direction: column;
+  }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+
+  /* ---------- header ---------- */
+  .top {
+    flex: 0 0 auto; background: var(--surface); border-bottom: 1px solid var(--hairline);
+    padding: 12px clamp(16px, 3vw, 32px) 0;
+  }
+  .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
+  .brand__mark { width: 36px; height: 36px; border-radius: 7px; display: block; flex: 0 0 auto; }
+  .brand__name { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+  h1 { margin: 0; font-family: var(--f-display); font-size: 19px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .links a {
+    font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap; color: var(--ink-muted);
+    border: 1px solid var(--hairline-hi); border-radius: 4px; padding: 6px 11px;
+  }
+  .links a:hover { color: var(--ink); border-color: var(--accent); }
+
+  /* ---------- stage tabs ---------- */
+  .tabs { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+  .tab {
+    font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    background: transparent; color: var(--ink-muted); border: 0; border-bottom: 3px solid transparent;
+    padding: 9px 14px 8px;
+  }
+  .tab small { font-family: var(--f-data); font-weight: 500; font-size: 11px; margin-right: 6px; opacity: .8; }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ---------- stages ---------- */
+  .stages { flex: 1 1 auto; min-height: 0; position: relative; }
+  .stage { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--ground); display: block; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <a class="brand" href="/">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="#D08A10"></rect>
+        <text x="19" y="22" text-anchor="middle" font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+      </svg>
+      <div>
+        <div class="brand__name">SD Sourcing Agent &middot; Beta 1.1</div>
+        <h1>Kick Off / Talent Mapping</h1>
+      </div>
+    </a>
+    <nav class="links" aria-label="Site">
+      <a href="/">Home</a>
+      <a href="/submit">Submissions</a>
+      <a href="/feedback">Feedback</a>
+      <a href="https://www.sourcedirectbi.com" target="_blank" rel="noopener">Source Direct &#8599;</a>
+    </nav>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Stage">
+    <button class="tab" id="tab-kickoff" role="tab" aria-selected="true" aria-controls="stage-kickoff" type="button">
+      <small>1</small>Kick off &mdash; job description
+    </button>
+    <button class="tab" id="tab-mapping" role="tab" aria-selected="false" aria-controls="stage-mapping" type="button">
+      <small>2</small>Talent Mapping
+    </button>
+  </div>
+</header>
+
+<main class="stages">
+  <!-- Both stages stay loaded so switching tabs keeps what you typed and any results on screen. -->
+  <iframe class="stage" id="stage-kickoff" title="Kick off — job description" src="/icp" role="tabpanel" aria-labelledby="tab-kickoff"></iframe>
+  <iframe class="stage" id="stage-mapping" title="Talent Mapping" src="/map" role="tabpanel" aria-labelledby="tab-mapping" hidden></iframe>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var STAGES = ["kickoff", "mapping"];
+
+  function select(which, updateHash) {
+    if (STAGES.indexOf(which) < 0) which = "kickoff";
+    STAGES.forEach(function (name) {
+      var on = name === which;
+      document.getElementById("stage-" + name).hidden = !on;
+      document.getElementById("tab-" + name).setAttribute("aria-selected", String(on));
+    });
+    if (updateHash) {
+      try { history.replaceState(null, "", "#" + which); } catch (e) { /* sandboxed */ }
+    }
+  }
+
+  STAGES.forEach(function (name) {
+    document.getElementById("tab-" + name).addEventListener("click", function () { select(name, true); });
+  });
+  window.addEventListener("hashchange", function () { select(location.hash.slice(1), false); });
+  select(location.hash.slice(1), false);
+})();
+</script>
+</body>
+</html>
