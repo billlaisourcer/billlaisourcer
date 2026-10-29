@@ -1,6 +1,32 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/kickoff",
+      "destination": "/kickoff.html"
+    },
+    {
+      "source": "/building",
+      "destination": "/building.html"
+    },
+    {
+      "source": "/feedback",
+      "destination": "/feedback.html"
+    },
+    {
+      "source": "/icp",
+      "destination": "/icp.html"
+    },
+    {
+      "source": "/submit",
+      "destination": "/submit.html"
+    },
+    {
+      "source": "/map",
+      "destination": "/map.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

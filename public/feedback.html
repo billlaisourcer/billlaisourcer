@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Send feedback on SD Sourcing Copilot to the SourceDirect AI team.">
+<title>Send Feedback</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2F7FFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<style>
+  :root { color-scheme: light dark; }
+  html { -webkit-text-size-adjust: 100%; }
+  * { box-sizing: border-box; }
+
+  :root {
+    --ground:#F7F9FD; --surface:#FFFFFF; --ink:#040D1E; --ink-muted:#5D6E8E;
+    --hairline:#DFE7F4; --hairline-hi:#C4D2EA; --accent:#2F7FFF; --accent-ink:#FFFFFF;
+    --accent-soft:#EEF4FF; --good:#1C7A55; --good-soft:#E1F2EB; --crit:#C0392B; --crit-soft:#FBE6E3;
+    --focus:#2F7FFF;
+    --f-display:"Playfair Display",Georgia,"Times New Roman",serif;
+    --f-chrome:"DM Sans","Helvetica Neue",Arial,sans-serif;
+    --f-data:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#060C18; --surface:#0D1526; --ink:#E8EEF9; --ink-muted:#9AAAC6;
+      --hairline:#1C2740; --hairline-hi:#2C3A58; --accent:#61A4FF; --accent-ink:#040D1E;
+      --accent-soft:#14203A; --good:#5FC49A; --good-soft:#0F2620; --crit:#F08878; --crit-soft:#2B1512;
+      --focus:#61A4FF;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#060C18; --surface:#0D1526; --ink:#E8EEF9; --ink-muted:#9AAAC6;
+    --hairline:#1C2740; --hairline-hi:#2C3A58; --accent:#61A4FF; --accent-ink:#040D1E;
+    --accent-soft:#14203A; --good:#5FC49A; --good-soft:#0F2620; --crit:#F08878; --crit-soft:#2B1512;
+    --focus:#61A4FF;
+  }
+
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--f-chrome);
+    font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  :focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  a { color:inherit; }
+  .wrap { max-width:620px; margin:0 auto; padding:0 16px; }
+
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:20px 0; }
+  .brand { display:flex; align-items:center; gap:12px; text-decoration:none; min-width:0; }
+  .brand__mark { width:38px; height:38px; border-radius:7px; display:block; flex:0 0 auto; }
+  .brand__name { font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); }
+  .brand__sub { font-size:13px; color:var(--ink-muted); }
+  .ext { font-size:13px; font-weight:500; text-decoration:none; white-space:nowrap; color:var(--ink-muted);
+    border:1px solid var(--hairline-hi); border-radius:4px; padding:7px 12px; }
+  .ext:hover { color:var(--ink); border-color:var(--accent); }
+
+  h1 { margin:28px 0 10px; font-family:var(--f-display); font-weight:900; font-size:clamp(28px,5vw,38px);
+    line-height:1.1; letter-spacing:-.02em; }
+  .lede { margin:0 0 22px; color:var(--ink-muted); }
+
+  form { display:flex; flex-direction:column; gap:14px; background:var(--surface);
+    border:1px solid var(--hairline); border-radius:6px; padding:22px; }
+  label { display:flex; flex-direction:column; gap:5px; font-size:14px; font-weight:700; }
+  label small { font-weight:400; color:var(--ink-muted); }
+  input, textarea { font:inherit; font-weight:400; color:var(--ink); background:var(--ground);
+    border:1px solid var(--hairline-hi); border-radius:4px; padding:10px 12px; width:100%; }
+  textarea { min-height:150px; resize:vertical; }
+  input:focus, textarea:focus { border-color:var(--accent); }
+  .hp { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .row { display:grid; gap:14px; grid-template-columns:1fr 1fr; }
+  @media (max-width:520px) { .row { grid-template-columns:1fr; } }
+  .count { font-family:var(--f-data); font-size:12px; color:var(--ink-muted); text-align:right; }
+
+  button { font:inherit; font-size:15px; font-weight:700; cursor:pointer; border-radius:4px; padding:11px 18px;
+    background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent); align-self:flex-start; }
+  button:disabled { opacity:.6; cursor:default; }
+
+  .msg { margin:0; padding:12px 14px; border-radius:6px; font-size:14.5px; border:1px solid var(--hairline-hi); }
+  .msg--ok { background:var(--good-soft); color:var(--good); }
+  .msg--err { background:var(--crit-soft); color:var(--crit); }
+  .msg a { font-weight:700; }
+  .alt { margin:16px 0 0; font-size:14px; color:var(--ink-muted); }
+  .alt a { border-bottom:1px solid var(--hairline-hi); text-decoration:none; }
+
+  footer { padding:28px 0 40px; margin-top:24px; border-top:1px solid var(--hairline); font-size:13px; color:var(--ink-muted);
+    display:flex; flex-wrap:wrap; gap:8px 20px; justify-content:space-between; }
+  footer a { text-decoration:none; border-bottom:1px solid var(--hairline-hi); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <a class="brand" href="/">
+      <svg class="brand__mark" viewBox="0 0 38 38" role="img" aria-label="SD">
+        <rect width="38" height="38" rx="7" fill="var(--accent)"></rect>
+        <rect x="7" y="27.5" width="14" height="2.5" rx="1.25" fill="#D08A10"></rect>
+        <text x="19" y="22" text-anchor="middle" font-family="DM Sans, 'Helvetica Neue', Arial, sans-serif"
+          font-size="16" font-weight="700" letter-spacing="-0.5" fill="#FFFFFF">SD</text>
+      </svg>
+      <div>
+        <div class="brand__name">SourceDirect AI</div>
+        <div class="brand__sub">SD Sourcing Copilot</div>
+      </div>
+    </a>
+    <a class="ext" href="/">&larr; Home</a>
+  </header>
+
+  <main>
+    <h1>Send feedback</h1>
+    <p class="lede">
+      SD Sourcing Copilot is in beta. Tell us what worked, what broke, or what you wish it did &mdash;
+      it goes straight to the SourceDirect AI team.
+    </p>
+
+    <form id="f" novalidate>
+      <label>Your feedback
+        <textarea id="message" name="message" maxlength="4000" required
+          placeholder="What were you trying to do, and what happened?"></textarea>
+        <span class="count" id="count" aria-hidden="true">0 / 4000</span>
+      </label>
+      <div class="row">
+        <label>Name <small>optional</small>
+          <input id="name" name="name" type="text" maxlength="200" autocomplete="name">
+        </label>
+        <label>Email <small>optional, if you'd like a reply</small>
+          <input id="email" name="email" type="email" maxlength="200" autocomplete="email">
+        </label>
+      </div>
+      <div class="hp" aria-hidden="true">
+        <label>Website <input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <button id="send" type="submit">Send feedback</button>
+      <p class="msg msg--ok" id="ok" role="status" hidden>Thank you &mdash; your feedback was sent.</p>
+      <p class="msg msg--err" id="err" role="alert" hidden></p>
+    </form>
+
+    <p class="alt">Prefer email? Write to
+      <a href="mailto:sales@sourcedirectbi.com?subject=SD%20Sourcing%20Agent%20feedback">sales@sourcedirectbi.com</a>.</p>
+  </main>
+
+  <footer>
+    <span>SD Sourcing Copilot &middot; Beta 1.1 &middot; SourceDirect AI</span>
+    <a href="/">Home</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var $msg = $("message"), $err = $("err"), $ok = $("ok"), $send = $("send");
+
+  // Where the visitor came from, so a note like "this button did nothing" has context.
+  var from = "";
+  try { from = new URL(document.referrer).pathname; } catch (e) { from = ""; }
+
+  $msg.addEventListener("input", function () {
+    $("count").textContent = $msg.value.length + " / 4000";
+    $err.hidden = true;
+  });
+
+  function mailtoHref() {
+    var body = $msg.value + "\n\n" + ($("name").value ? "From: " + $("name").value : "");
+    return "mailto:sales@sourcedirectbi.com?subject=" + encodeURIComponent("SD Sourcing Copilot feedback") +
+      "&body=" + encodeURIComponent(body.slice(0, 1500));
+  }
+
+  function fail(text, withMailto) {
+    $err.textContent = text + " ";
+    if (withMailto) {
+      var a = document.createElement("a");
+      a.href = mailtoHref(); a.textContent = "Send it by email instead.";
+      $err.appendChild(a);
+    }
+    $err.hidden = false;
+  }
+
+  $("f").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    $ok.hidden = true; $err.hidden = true;
+    if ($msg.value.trim().length < 5) { fail("Please write a little more before sending.", false); return; }
+    $send.disabled = true; $send.textContent = "Sending…";
+    try {
+      var res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          message: $msg.value, name: $("name").value, email: $("email").value,
+          website: $("website").value, page: from
+        })
+      });
+      var payload = {};
+      try { payload = await res.json(); } catch (x) { payload = {}; }
+      if (res.ok) {
+        $("f").reset(); $("count").textContent = "0 / 4000"; $ok.hidden = false;
+      } else if (res.status === 429) {
+        fail(payload.error || "Too many messages. Try again in a few minutes.", false);
+      } else {
+        fail((payload.error || "That did not send.") , true);
+      }
+    } catch (x) {
+      fail("Could not reach the server.", true);
+    } finally {
+      $send.disabled = false; $send.textContent = "Send feedback";
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Sourcing AI Agent
+# SD Sourcing Copilot
 
 Paste a job description, get a **calibration slate**: ten sourced candidates, banded to
 provoke disagreement, each scored on a fixed rubric with the evidence behind every rating.
@@ -31,9 +31,16 @@ arithmetic then happens in code, not in the model — see the rubric below.
 
 ```
 api/intake.ts             the sourcing endpoint (Vercel function)
+api/submission.ts         call notes + resume -> a recruiter submission
+api/history.ts            past searches and submissions — list and open (gated, read-only)
 lib/rubric.ts             weights, bands, evidence floor — the single source of truth
 lib/intake-schema.ts      Zod contract the model must satisfy
-public/index.html         the UI and the in-browser scorer
+lib/submission-schema.ts  Zod contract for a submission, and the expected-field list
+lib/resume.ts             PDF passthrough and .docx text extraction
+lib/history.ts            run and submission records in Redis, on a 30-day TTL
+public/index.html         the landing page
+public/icp.html           the ICP generator and the in-browser scorer
+public/submit.html        the submission builder
 scripts/score_candidates.py   the CLI scorer (byte-identical output)
 schema/intake.schema.json     the intake file format
 .claude/skills/jd-intake/     the Claude-side workflow (SeekOut + Pin)
@@ -41,18 +48,24 @@ schema/intake.schema.json     the intake file format
 
 ## Environment
 
-Three variables, all required. The endpoint **fails closed** without them.
+`/api/intake` **fails closed** without the two API keys.
 
 | Variable | Purpose |
 |---|---|
-| `APP_ACCESS_TOKEN` | Gate on `/api/intake`. Without it anyone with the URL spends your credits. |
 | `SUPERCARL_API_KEY` | Super Carl programmatic access — mint at `/integrations/connections`. |
 | `ANTHROPIC_API_KEY` | Starts `sk-ant-api03-`, ~100+ chars. Billed separately from a Claude subscription. |
+| `RESEND_API_KEY` | Sends `/feedback` form submissions to `FEEDBACK_TO` (default `sales@sourcedirectbi.com`) via Resend. `FEEDBACK_FROM` must be a verified Resend sender. Unset: the form falls back to a mailto: link. |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Search history. Injected by the Vercel Upstash integration; the legacy `KV_REST_API_*` pair is also accepted. |
+
+Only the first two gate a search. Without the history variables the app runs
+exactly as before — every search works, none of them is recorded, and the
+History tab says so.
 
 Set the **value**, not the website you got it from — pasting a URL is the most
 common way this breaks, and it surfaces as `invalid x-api-key`.
 
-See `.env.example`. Set the same three in **Vercel → Settings → Environment Variables**.
+See `.env.example`. Set these in **Vercel → Settings → Environment Variables**, and
+create the history store under **Vercel → Storage → Create Database → Upstash**.
 
 ## Deploying the web UI
 
